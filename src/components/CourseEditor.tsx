@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Course, Program, Semester } from '../types';
 import { COURSE_TYPES, SEMESTERS } from '../types';
 import { activeSemesters } from '../stats';
+import { useI18n } from '../i18n/useI18n';
 
 interface Props {
   program: Program;
@@ -26,6 +27,7 @@ export function CourseEditor({
   onCancel,
   onDelete,
 }: Props) {
+  const { t } = useI18n();
   const [draft, setDraft] = useState<Course>({
     id: initial.id ?? newId(),
     code: initial.code ?? '',
@@ -67,19 +69,19 @@ export function CourseEditor({
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
       >
-        <h2>{initial.id ? 'Edit course' : 'Add course'}</h2>
+        <h2>{initial.id ? t('editor.editTitle') : t('editor.addTitle')}</h2>
 
         <div className="grid-2">
           <label>
-            Code
+            {t('editor.code')}
             <input
               value={draft.code}
               onChange={(e) => set('code', e.target.value)}
-              placeholder="CS101"
+              placeholder={t('editor.codePlaceholder')}
             />
           </label>
           <label>
-            Credits
+            {t('editor.credits')}
             <input
               type="number"
               min={0}
@@ -91,62 +93,62 @@ export function CourseEditor({
         </div>
 
         <label>
-          Name
+          {t('editor.name')}
           <input
             value={draft.name}
             autoFocus
             onChange={(e) => set('name', e.target.value)}
-            placeholder="Introduction to Computer Science"
+            placeholder={t('editor.namePlaceholder')}
           />
         </label>
 
         <div className="grid-2">
           <label>
-            Type
+            {t('editor.type')}
             <select
               value={draft.type}
               onChange={(e) => set('type', e.target.value as Course['type'])}
             >
-              {COURSE_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
+              {COURSE_TYPES.map((ct) => (
+                <option key={ct.value} value={ct.value}>
+                  {t(`courseType.${ct.value}`)}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Category
+            {t('editor.category')}
             <input
               value={draft.category}
               onChange={(e) => set('category', e.target.value)}
-              placeholder="Core CS"
+              placeholder={t('editor.categoryPlaceholder')}
             />
           </label>
         </div>
 
         <div className="grid-2">
           <label>
-            Year
+            {t('editor.yearLabel')}
             <select
               value={draft.year}
               onChange={(e) => set('year', Number(e.target.value))}
             >
               {Array.from({ length: program.years }, (_, i) => i + 1).map((y) => (
                 <option key={y} value={y}>
-                  Year {y}
+                  {t('editor.year', { n: y })}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            Semester
+            {t('editor.semester')}
             <select
               value={draft.semester}
               onChange={(e) => set('semester', e.target.value as Semester)}
             >
               {SEMESTERS.filter((s) => semesters.includes(s)).map((s) => (
                 <option key={s} value={s}>
-                  {s === 'Summer' ? 'Summer' : `Semester ${s}`}
+                  {t(`semester.${s}`)}
                 </option>
               ))}
             </select>
@@ -154,7 +156,7 @@ export function CourseEditor({
         </div>
 
         <label>
-          Description
+          {t('editor.description')}
           <textarea
             rows={2}
             value={draft.description}
@@ -163,9 +165,9 @@ export function CourseEditor({
         </label>
 
         <fieldset className="prereqs">
-          <legend>Prerequisites</legend>
+          <legend>{t('editor.prerequisites')}</legend>
           {otherCourses.length === 0 && (
-            <p className="muted">No other courses yet.</p>
+            <p className="muted">{t('editor.noOtherCourses')}</p>
           )}
           <div className="prereq-list">
             {otherCourses.map((c) => (
@@ -187,15 +189,15 @@ export function CourseEditor({
         <div className="modal-actions">
           {onDelete && (
             <button type="button" className="danger" onClick={onDelete}>
-              Delete
+              {t('editor.delete')}
             </button>
           )}
           <span className="spacer" />
           <button type="button" onClick={onCancel}>
-            Cancel
+            {t('editor.cancel')}
           </button>
           <button type="submit" className="primary">
-            Save
+            {t('editor.save')}
           </button>
         </div>
       </form>

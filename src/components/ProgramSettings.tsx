@@ -1,4 +1,5 @@
 import type { Program } from '../types';
+import { useI18n } from '../i18n/useI18n';
 
 interface Props {
   program: Program;
@@ -7,16 +8,17 @@ interface Props {
 }
 
 export function ProgramSettings({ program, onChange, onClose }: Props) {
+  const { t } = useI18n();
   const set = <K extends keyof Program>(key: K, value: Program[K]) =>
     onChange({ ...program, [key]: value });
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Program details</h2>
+        <h2>{t('settings.title')}</h2>
 
         <label>
-          Program name
+          {t('settings.programName')}
           <input
             value={program.name}
             onChange={(e) => set('name', e.target.value)}
@@ -25,15 +27,15 @@ export function ProgramSettings({ program, onChange, onClose }: Props) {
 
         <div className="grid-2">
           <label>
-            Degree
+            {t('settings.degree')}
             <input
               value={program.degree}
               onChange={(e) => set('degree', e.target.value)}
-              placeholder="B.Sc."
+              placeholder={t('settings.degreePlaceholder')}
             />
           </label>
           <label>
-            Institution
+            {t('settings.institution')}
             <input
               value={program.institution}
               onChange={(e) => set('institution', e.target.value)}
@@ -43,7 +45,7 @@ export function ProgramSettings({ program, onChange, onClose }: Props) {
 
         <div className="grid-2">
           <label>
-            Number of years
+            {t('settings.years')}
             <input
               type="number"
               min={1}
@@ -55,7 +57,7 @@ export function ProgramSettings({ program, onChange, onClose }: Props) {
             />
           </label>
           <label>
-            Required credits
+            {t('settings.requiredCredits')}
             <input
               type="number"
               min={0}
@@ -71,13 +73,13 @@ export function ProgramSettings({ program, onChange, onClose }: Props) {
             checked={program.showSummer}
             onChange={(e) => set('showSummer', e.target.checked)}
           />
-          Show Summer semester column
+          {t('settings.showSummer')}
         </label>
 
         <div className="modal-actions">
           <span className="spacer" />
           <button className="primary" onClick={onClose}>
-            Done
+            {t('settings.done')}
           </button>
         </div>
       </div>

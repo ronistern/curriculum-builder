@@ -5,12 +5,16 @@ export type CourseType =
   | 'project'
   | 'general';
 
-export const COURSE_TYPES: { value: CourseType; label: string }[] = [
-  { value: 'mandatory', label: 'Mandatory' },
-  { value: 'elective', label: 'Elective' },
-  { value: 'seminar', label: 'Seminar' },
-  { value: 'project', label: 'Project' },
-  { value: 'general', label: 'General studies' },
+/**
+ * Canonical ordering of course types. Display labels are resolved per-language
+ * via the i18n dictionary (see `courseType.*` keys).
+ */
+export const COURSE_TYPES: { value: CourseType }[] = [
+  { value: 'mandatory' },
+  { value: 'elective' },
+  { value: 'seminar' },
+  { value: 'project' },
+  { value: 'general' },
 ];
 
 export type Semester = 'A' | 'B' | 'Summer';

@@ -6,8 +6,10 @@ import {
   findPrereqIssues,
   totalCredits,
 } from '../stats';
+import { useI18n } from '../i18n/useI18n';
 
 export function SummaryPanel({ program }: { program: Program }) {
+  const { t } = useI18n();
   const total = totalCredits(program);
   const byType = creditsByType(program);
   const byYear = creditsByYear(program);
@@ -18,14 +20,14 @@ export function SummaryPanel({ program }: { program: Program }) {
 
   return (
     <aside className="summary">
-      <h2>Summary</h2>
+      <h2>{t('summary.title')}</h2>
 
       <div className="summary-block">
         <div className="big-number">
           {total}
           <span className="of"> / {program.requiredCredits}</span>
         </div>
-        <div className="muted">credits planned</div>
+        <div className="muted">{t('summary.creditsPlanned')}</div>
         <div className="progress">
           <div
             className={`progress-bar ${total > program.requiredCredits ? 'over' : ''}`}
@@ -35,39 +37,46 @@ export function SummaryPanel({ program }: { program: Program }) {
       </div>
 
       <div className="summary-block">
-        <h3>By year</h3>
+        <h3>{t('summary.byYear')}</h3>
         {byYear.map((credits, i) => (
           <div className="summary-row" key={i}>
-            <span>Year {i + 1}</span>
-            <span>{credits} cr</span>
+            <span>{t('grid.year', { n: i + 1 })}</span>
+            <span>{t('common.credits', { n: credits })}</span>
           </div>
         ))}
       </div>
 
       <div className="summary-block">
-        <h3>By type</h3>
-        {COURSE_TYPES.map((t) =>
-          byType[t.value] ? (
-            <div className="summary-row" key={t.value}>
-              <span className={`type-badge type-${t.value}`}>{t.label}</span>
-              <span>{byType[t.value]} cr</span>
+        <h3>{t('summary.byType')}</h3>
+        {COURSE_TYPES.map((ct) =>
+          byType[ct.value] ? (
+            <div className="summary-row" key={ct.value}>
+              <span className={`type-badge type-${ct.value}`}>
+                {t(`courseType.${ct.value}`)}
+              </span>
+              <span>{t('common.credits', { n: byType[ct.value] })}</span>
             </div>
           ) : null,
         )}
-        {program.courses.length === 0 && <p className="muted">No courses yet.</p>}
+        {program.courses.length === 0 && (
+          <p className="muted">{t('summary.noCourses')}</p>
+        )}
       </div>
 
       <div className="summary-block">
-        <h3>Prerequisite checks</h3>
+        <h3>{t('summary.prereqChecks')}</h3>
         {issues.length === 0 ? (
-          <p className="ok">✓ All prerequisites are scheduled earlier.</p>
+          <p className="ok">{t('summary.allGood')}</p>
         ) : (
           <ul className="issue-list">
             {issues.map((iss, i) => (
               <li key={i}>
-                <strong>{iss.course.name}</strong> needs{' '}
-                <strong>{iss.prereq.name}</strong> first, but it is scheduled in
-                Year {iss.prereq.year} / {iss.prereq.semester}.
+                {t('summary.issue', {
+                  course: iss.course.name,
+                  prereq: iss.prereq.name,
+                  year: iss.prereq.year,
+                  semester: t(`semester.${iss.prereq.semester}`),
+                })}
               </li>
             ))}
           </ul>

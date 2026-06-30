@@ -1,6 +1,7 @@
 import type { Course, Program, Semester } from '../types';
 import { activeSemesters, coursesAt, findPrereqIssues } from '../stats';
 import { CourseCard } from './CourseCard';
+import { useI18n } from '../i18n/useI18n';
 
 interface Props {
   program: Program;
@@ -9,11 +10,8 @@ interface Props {
   onAdd: (year: number, semester: Semester) => void;
 }
 
-function semesterLabel(s: Semester) {
-  return s === 'Summer' ? 'Summer' : `Semester ${s}`;
-}
-
 export function CurriculumGrid({ program, editable, onEdit, onAdd }: Props) {
+  const { t } = useI18n();
   const semesters = activeSemesters(program);
   const byId = new Map(program.courses.map((c) => [c.id, c]));
   const issueCourseIds = new Set(
@@ -26,7 +24,7 @@ export function CurriculumGrid({ program, editable, onEdit, onAdd }: Props) {
     <div className="grid-wrap">
       {years.map((year) => (
         <section className="year-block" key={year}>
-          <h2 className="year-title">Year {year}</h2>
+          <h2 className="year-title">{t('grid.year', { n: year })}</h2>
           <div
             className="semester-row"
             style={{ gridTemplateColumns: `repeat(${semesters.length}, 1fr)` }}
@@ -37,8 +35,10 @@ export function CurriculumGrid({ program, editable, onEdit, onAdd }: Props) {
               return (
                 <div className="semester-col" key={sem}>
                   <div className="semester-head">
-                    <span>{semesterLabel(sem)}</span>
-                    <span className="muted">{credits} cr</span>
+                    <span>{t(`semester.${sem}`)}</span>
+                    <span className="muted">
+                      {t('common.credits', { n: credits })}
+                    </span>
                   </div>
                   {courses.map((c) => (
                     <CourseCard
@@ -57,7 +57,7 @@ export function CurriculumGrid({ program, editable, onEdit, onAdd }: Props) {
                       className="add-course"
                       onClick={() => onAdd(year, sem)}
                     >
-                      + Add course
+                      {t('grid.addCourse')}
                     </button>
                   )}
                   {!editable && courses.length === 0 && (

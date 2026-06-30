@@ -91,6 +91,20 @@ button.danger {
   border-color: #ffc9c9;
 }
 
+.lang-switcher {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.lang-switcher:hover {
+  border-color: var(--accent);
+}
+
 /* ---------- body layout ---------- */
 .body {
   display: grid;
@@ -147,7 +161,7 @@ button.danger {
 /* ---------- course card ---------- */
 .course-card {
   border: 1px solid var(--line);
-  border-left: 4px solid var(--muted);
+  border-inline-start: 4px solid var(--muted);
   border-radius: 8px;
   padding: 0.5rem 0.6rem;
   margin-bottom: 0.5rem;
@@ -163,19 +177,19 @@ button.danger {
 }
 
 .course-card.type-mandatory {
-  border-left-color: var(--t-mandatory);
+  border-inline-start-color: var(--t-mandatory);
 }
 .course-card.type-elective {
-  border-left-color: var(--t-elective);
+  border-inline-start-color: var(--t-elective);
 }
 .course-card.type-seminar {
-  border-left-color: var(--t-seminar);
+  border-inline-start-color: var(--t-seminar);
 }
 .course-card.type-project {
-  border-left-color: var(--t-project);
+  border-inline-start-color: var(--t-project);
 }
 .course-card.type-general {
-  border-left-color: var(--t-general);
+  border-inline-start-color: var(--t-general);
 }
 
 .course-card-top {
@@ -323,7 +337,7 @@ button.danger {
 
 .issue-list {
   margin: 0;
-  padding-left: 1.1rem;
+  padding-inline-start: 1.1rem;
   font-size: 0.8rem;
   color: #c92a2a;
 }

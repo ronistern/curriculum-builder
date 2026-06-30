@@ -22,6 +22,9 @@ present mode for sharing.
   automatically. Export to / import from a JSON file to back up or share.
 - **Sample program** — load an illustrative B.Sc. in Computer Science to see the
   layout, or start from a blank program.
+- **Multi-lingual** — full Hebrew and English interface, switchable from the
+  toolbar. Defaults to Hebrew with right-to-left layout; the choice is
+  remembered in local storage.
 
 ## Getting started
 
@@ -45,13 +48,25 @@ src/
   storage.ts                localStorage persistence + JSON export/import
   stats.ts                  Credit totals, breakdowns, prerequisite checks
   App.tsx                   Top-level layout, toolbar, editor wiring
+  i18n/
+    translations.ts         Hebrew + English dictionaries, language list
+    I18nContext.tsx         Provider: language state, RTL on <html>, t()
+    useI18n.ts              Context + useI18n() hook + typed t() keys
   components/
     CurriculumGrid.tsx      Years × semesters grid of course cards
     CourseCard.tsx          A single course tile
     CourseEditor.tsx        Add/edit course modal (incl. prerequisites)
     ProgramSettings.tsx     Program name, years, required credits, etc.
     SummaryPanel.tsx        Credit summary + prerequisite warnings
+    LanguageSwitcher.tsx    Language dropdown in the toolbar
 ```
+
+## Adding a language
+
+1. Add the language code to `Lang` and the `LANGUAGES` list in
+   [src/i18n/translations.ts](src/i18n/translations.ts) (set its `dir`).
+2. Add a matching entry to the `translations` map. The `en` dictionary is the
+   canonical shape — TypeScript will flag any missing keys.
 
 ## Data model
 

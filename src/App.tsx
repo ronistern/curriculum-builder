@@ -6,6 +6,8 @@ import { CurriculumGrid } from './components/CurriculumGrid';
 import { SummaryPanel } from './components/SummaryPanel';
 import { CourseEditor } from './components/CourseEditor';
 import { ProgramSettings } from './components/ProgramSettings';
+import { LanguageSwitcher } from './components/LanguageSwitcher';
+import { useI18n } from './i18n/useI18n';
 import './App.css';
 
 type EditorState =
@@ -14,6 +16,7 @@ type EditorState =
   | { mode: 'add'; seed: Partial<Course> };
 
 export default function App() {
+  const { t } = useI18n();
   const [program, setProgram] = useProgram();
   const [present, setPresent] = useState(false);
   const [editor, setEditor] = useState<EditorState>({ mode: 'closed' });
@@ -54,7 +57,7 @@ export default function App() {
       const imported = await importProgram(file);
       setProgram(imported);
     } catch (err) {
-      alert('Could not import file: ' + (err as Error).message);
+      alert(t('app.importError') + (err as Error).message);
     }
   };
 
@@ -73,29 +76,30 @@ export default function App() {
         <div className="toolbar">
           {editable && (
             <>
-              <button onClick={() => setShowSettings(true)}>Program…</button>
-              <button onClick={() => exportProgram(program)}>Export</button>
-              <button onClick={() => fileInput.current?.click()}>Import</button>
+              <button onClick={() => setShowSettings(true)}>
+                {t('app.program')}
+              </button>
+              <button onClick={() => exportProgram(program)}>
+                {t('app.export')}
+              </button>
+              <button onClick={() => fileInput.current?.click()}>
+                {t('app.import')}
+              </button>
               <button
                 onClick={() => {
-                  if (
-                    confirm(
-                      'Load the sample Computer Science program? This replaces the current one.',
-                    )
-                  )
+                  if (confirm(t('app.confirmSample')))
                     setProgram(sampleProgram);
                 }}
               >
-                Sample
+                {t('app.sample')}
               </button>
               <button
                 className="danger-ghost"
                 onClick={() => {
-                  if (confirm('Clear all courses and start a blank program?'))
-                    setProgram(emptyProgram());
+                  if (confirm(t('app.confirmNew'))) setProgram(emptyProgram());
                 }}
               >
-                New
+                {t('app.new')}
               </button>
               <input
                 ref={fileInput}
@@ -109,8 +113,9 @@ export default function App() {
               />
             </>
           )}
+          <LanguageSwitcher />
           <button className="primary" onClick={() => setPresent((v) => !v)}>
-            {present ? '✎ Edit' : '▶ Present'}
+            {present ? t('app.edit') : t('app.present')}
           </button>
         </div>
       </header>
