@@ -1,12 +1,21 @@
+import { useEffect, useRef } from 'react';
 import type { Course } from '../types';
 import { useI18n } from '../i18n/useI18n';
+
+/** Delay before a single click acts, so a double-click can cancel it. */
+const CLICK_DELAY_MS = 200;
+
+export type Highlight = 'selected' | 'prereq' | 'dependent';
 
 interface Props {
   course: Course;
   prereqLabels: string[];
   hasIssue: boolean;
   editable: boolean;
-  onClick?: () => void;
+  highlight?: Highlight;
+  onSelect?: () => void;
+  /** Open the course detail view (triggered by double-click when editable). */
+  onOpen?: () => void;
 }
 
 export function CourseCard({
@@ -14,13 +23,48 @@ export function CourseCard({
   prereqLabels,
   hasIssue,
   editable,
-  onClick,
+  highlight,
+  onSelect,
+  onOpen,
 }: Props) {
   const { t } = useI18n();
+  // When the card is editable a double-click opens the editor, so a single
+  // click is deferred briefly and cancelled if a double-click lands.
+  const clickTimer = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (clickTimer.current !== null) clearTimeout(clickTimer.current);
+    },
+    [],
+  );
+
+  const handleClick = () => {
+    if (!editable) {
+      onSelect?.();
+      return;
+    }
+    if (clickTimer.current !== null) clearTimeout(clickTimer.current);
+    clickTimer.current = window.setTimeout(() => {
+      clickTimer.current = null;
+      onSelect?.();
+    }, CLICK_DELAY_MS);
+  };
+
+  const handleDoubleClick = () => {
+    if (clickTimer.current !== null) {
+      clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+    }
+    onOpen?.();
+  };
+
   return (
     <div
-      className={`course-card type-${course.type} ${editable ? 'editable' : ''}`}
-      onClick={editable ? onClick : undefined}
+      className={`course-card type-${course.type}${
+        highlight ? ` hl-${highlight}` : ''
+      }`}
+      onClick={handleClick}
+      onDoubleClick={editable ? handleDoubleClick : undefined}
       title={course.description || undefined}
     >
       <div className="course-card-top">

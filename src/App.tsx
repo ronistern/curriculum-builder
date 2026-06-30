@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react';
-import type { Course, Semester } from './types';
-import { useProgram, exportProgram, importProgram } from './storage';
-import { emptyProgram, sampleProgram } from './sampleData';
+import type { Course, Program, Semester } from './types';
+import { useProgram } from './storage';
+import { downloadProgram, readProgramFile } from './fileStore';
+import { emptyProgram } from './sampleData';
 import { CurriculumGrid } from './components/CurriculumGrid';
 import { SummaryPanel } from './components/SummaryPanel';
 import { CourseEditor } from './components/CourseEditor';
 import { ProgramSettings } from './components/ProgramSettings';
+import { DiffView } from './components/DiffView';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { useI18n } from './i18n/useI18n';
 import './App.css';
@@ -17,11 +19,23 @@ type EditorState =
 
 export default function App() {
   const { t } = useI18n();
-  const [program, setProgram] = useProgram();
+  const {
+    program,
+    setProgram,
+    fileName,
+    dirty,
+    canUseFiles,
+    open,
+    save,
+    saveAs,
+    reset,
+  } = useProgram();
   const [present, setPresent] = useState(false);
   const [editor, setEditor] = useState<EditorState>({ mode: 'closed' });
   const [showSettings, setShowSettings] = useState(false);
+  const [compareWith, setCompareWith] = useState<Program | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const compareInput = useRef<HTMLInputElement>(null);
 
   const editable = !present;
 
@@ -54,10 +68,35 @@ export default function App() {
   const handleImport = async (file: File | undefined) => {
     if (!file) return;
     try {
-      const imported = await importProgram(file);
+      const imported = await readProgramFile(file);
       setProgram(imported);
     } catch (err) {
       alert(t('app.importError') + (err as Error).message);
+    }
+  };
+
+  const handleCompare = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      setCompareWith(await readProgramFile(file));
+    } catch (err) {
+      alert(t('app.compareError') + (err as Error).message);
+    }
+  };
+
+  const onOpen = async () => {
+    try {
+      await open();
+    } catch (err) {
+      alert(t('app.openError') + (err as Error).message);
+    }
+  };
+
+  const onSave = async (mode: 'save' | 'saveAs') => {
+    try {
+      await (mode === 'saveAs' ? saveAs() : save());
+    } catch (err) {
+      alert(t('app.saveError') + (err as Error).message);
     }
   };
 
@@ -71,6 +110,17 @@ export default function App() {
           {program.institution && (
             <div className="subtitle">{program.institution}</div>
           )}
+          {canUseFiles && !present && (
+            <div className="file-status">
+              {fileName ?? t('app.untitled')}
+              {dirty && (
+                <span className="unsaved" title={t('app.unsaved')}>
+                  {' '}
+                  •
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="toolbar">
@@ -79,24 +129,34 @@ export default function App() {
               <button onClick={() => setShowSettings(true)}>
                 {t('app.program')}
               </button>
-              <button onClick={() => exportProgram(program)}>
-                {t('app.export')}
-              </button>
-              <button onClick={() => fileInput.current?.click()}>
-                {t('app.import')}
-              </button>
-              <button
-                onClick={() => {
-                  if (confirm(t('app.confirmSample')))
-                    setProgram(sampleProgram);
-                }}
-              >
-                {t('app.sample')}
+              {canUseFiles ? (
+                <>
+                  <button onClick={onOpen}>{t('app.open')}</button>
+                  <button onClick={() => onSave('save')}>
+                    {t('app.save')}
+                    {dirty ? ' •' : ''}
+                  </button>
+                  <button onClick={() => onSave('saveAs')}>
+                    {t('app.saveAs')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => downloadProgram(program)}>
+                    {t('app.export')}
+                  </button>
+                  <button onClick={() => fileInput.current?.click()}>
+                    {t('app.import')}
+                  </button>
+                </>
+              )}
+              <button onClick={() => compareInput.current?.click()}>
+                {t('app.compare')}
               </button>
               <button
                 className="danger-ghost"
                 onClick={() => {
-                  if (confirm(t('app.confirmNew'))) setProgram(emptyProgram());
+                  if (confirm(t('app.confirmNew'))) reset(emptyProgram());
                 }}
               >
                 {t('app.new')}
@@ -108,6 +168,16 @@ export default function App() {
                 hidden
                 onChange={(e) => {
                   handleImport(e.target.files?.[0]);
+                  e.target.value = '';
+                }}
+              />
+              <input
+                ref={compareInput}
+                type="file"
+                accept="application/json"
+                hidden
+                onChange={(e) => {
+                  handleCompare(e.target.files?.[0]);
                   e.target.value = '';
                 }}
               />
@@ -156,6 +226,13 @@ export default function App() {
           program={program}
           onChange={setProgram}
           onClose={() => setShowSettings(false)}
+        />
+      )}
+      {compareWith && (
+        <DiffView
+          base={compareWith}
+          other={program}
+          onClose={() => setCompareWith(null)}
         />
       )}
     </div>

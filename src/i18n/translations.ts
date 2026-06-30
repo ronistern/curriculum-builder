@@ -25,14 +25,13 @@ const en = {
     saveAs: 'Save As…',
     export: 'Export',
     import: 'Import',
-    sample: 'Sample',
     new: 'New',
+    compare: 'Compare…',
+    compareError: 'Could not read file to compare: ',
     untitled: 'Untitled',
     unsaved: 'Unsaved changes',
     present: '▶ Present',
     edit: '✎ Edit',
-    confirmSample:
-      'Load the sample Computer Science program? This replaces the current one.',
     confirmNew: 'Clear all courses and start a blank program?',
     importError: 'Could not import file: ',
     openError: 'Could not open file: ',
@@ -41,6 +40,8 @@ const en = {
   },
   common: {
     credits: '{n} cr',
+    yes: 'Yes',
+    no: 'No',
   },
   semester: {
     A: 'Semester A',
@@ -57,7 +58,6 @@ const en = {
   grid: {
     year: 'Year {n}',
     addCourse: '+ Add course',
-    editCourse: 'Edit course',
     legendPrereqs: 'Prerequisites',
     legendDependents: 'Required by',
     clearSelection: 'Clear',
@@ -65,6 +65,9 @@ const en = {
   editor: {
     editTitle: 'Edit course',
     addTitle: 'Add course',
+    viewTitle: 'Course details',
+    startEdit: 'Edit',
+    close: 'Close',
     code: 'Code',
     credits: 'Credits',
     name: 'Name',
@@ -108,6 +111,22 @@ const en = {
     issue:
       '{course} needs {prereq} first, but it is scheduled in Year {year} / {semester}.',
   },
+  diff: {
+    title: 'Compare curriculums',
+    against: '{base} → {other}',
+    pickHint: 'Choose a curriculum file to compare against the current one.',
+    identical: 'The two curriculums are identical.',
+    added: 'Courses added',
+    removed: 'Courses removed',
+    modified: 'Courses changed',
+    programChanges: 'Program details',
+    addedCount: '{n} added',
+    removedCount: '{n} removed',
+    modifiedCount: '{n} changed',
+    creditDelta: 'Net credits',
+    close: 'Close',
+    empty: '—',
+  },
 };
 
 const he: Dict = {
@@ -118,14 +137,13 @@ const he: Dict = {
     saveAs: 'שמירה בשם…',
     export: 'ייצוא',
     import: 'ייבוא',
-    sample: 'דוגמה',
     new: 'חדש',
+    compare: 'השוואה…',
+    compareError: 'לא ניתן לקרוא את הקובץ להשוואה: ',
     untitled: 'ללא שם',
     unsaved: 'שינויים שלא נשמרו',
     present: '▶ מצגת',
     edit: '✎ עריכה',
-    confirmSample:
-      'לטעון את תוכנית הדוגמה במדעי המחשב? פעולה זו תחליף את התוכנית הנוכחית.',
     confirmNew: 'לנקות את כל הקורסים ולהתחיל תוכנית ריקה?',
     importError: 'לא ניתן לייבא את הקובץ: ',
     openError: 'לא ניתן לפתוח את הקובץ: ',
@@ -134,6 +152,8 @@ const he: Dict = {
   },
   common: {
     credits: '{n} נ"ז',
+    yes: 'כן',
+    no: 'לא',
   },
   semester: {
     A: "סמסטר א'",
@@ -150,7 +170,6 @@ const he: Dict = {
   grid: {
     year: 'שנה {n}',
     addCourse: '+ הוספת קורס',
-    editCourse: 'עריכת קורס',
     legendPrereqs: 'דרישות קדם',
     legendDependents: 'נדרש עבור',
     clearSelection: 'ניקוי',
@@ -158,6 +177,9 @@ const he: Dict = {
   editor: {
     editTitle: 'עריכת קורס',
     addTitle: 'הוספת קורס',
+    viewTitle: 'פרטי קורס',
+    startEdit: 'עריכה',
+    close: 'סגירה',
     code: 'קוד',
     credits: 'נקודות זכות',
     name: 'שם',
@@ -200,6 +222,22 @@ const he: Dict = {
     allGood: '✓ כל דרישות הקדם מתוזמנות מוקדם יותר.',
     issue:
       '{course} מחייב את {prereq} תחילה, אך הוא מתוזמן בשנה {year} / {semester}.',
+  },
+  diff: {
+    title: 'השוואת תוכניות',
+    against: '{base} ← {other}',
+    pickHint: 'בחר/י קובץ תוכנית להשוואה מול התוכנית הנוכחית.',
+    identical: 'שתי התוכניות זהות.',
+    added: 'קורסים שנוספו',
+    removed: 'קורסים שהוסרו',
+    modified: 'קורסים ששונו',
+    programChanges: 'פרטי התוכנית',
+    addedCount: '{n} נוספו',
+    removedCount: '{n} הוסרו',
+    modifiedCount: '{n} שונו',
+    creditDelta: 'שינוי נטו בנ"ז',
+    close: 'סגירה',
+    empty: '—',
   },
 };
 

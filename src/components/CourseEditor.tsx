@@ -28,6 +28,8 @@ export function CourseEditor({
   onDelete,
 }: Props) {
   const { t } = useI18n();
+  // Existing courses open read-only; a new course (no id yet) starts editable.
+  const [editing, setEditing] = useState(!initial.id);
   const [draft, setDraft] = useState<Course>({
     id: initial.id ?? newId(),
     code: initial.code ?? '',
@@ -54,11 +56,18 @@ export function CourseEditor({
   };
 
   const otherCourses = program.courses.filter((c) => c.id !== draft.id);
+  const prereqCourses = draft.prerequisites
+    .map((id) => program.courses.find((c) => c.id === id))
+    .filter((c): c is Course => Boolean(c));
+  const available = otherCourses.filter(
+    (c) => !draft.prerequisites.includes(c.id),
+  );
+  const courseLabel = (c: Course) => `${c.code ? `${c.code} · ` : ''}${c.name}`;
   const semesters = activeSemesters(program);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!draft.name.trim()) return;
+    if (!editing || !draft.name.trim()) return;
     onSave(draft);
   };
 
@@ -69,13 +78,33 @@ export function CourseEditor({
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
       >
-        <h2>{initial.id ? t('editor.editTitle') : t('editor.addTitle')}</h2>
+        <div className="modal-head">
+          <h2>
+            {!initial.id
+              ? t('editor.addTitle')
+              : editing
+                ? t('editor.editTitle')
+                : t('editor.viewTitle')}
+          </h2>
+          {initial.id && !editing && (
+            <button
+              type="button"
+              className="modal-edit"
+              aria-label={t('editor.startEdit')}
+              title={t('editor.startEdit')}
+              onClick={() => setEditing(true)}
+            >
+              ✎
+            </button>
+          )}
+        </div>
 
         <div className="grid-2">
           <label>
             {t('editor.code')}
             <input
               value={draft.code}
+              disabled={!editing}
               onChange={(e) => set('code', e.target.value)}
               placeholder={t('editor.codePlaceholder')}
             />
@@ -87,6 +116,7 @@ export function CourseEditor({
               min={0}
               step={0.5}
               value={draft.credits}
+              disabled={!editing}
               onChange={(e) => set('credits', Number(e.target.value))}
             />
           </label>
@@ -96,7 +126,8 @@ export function CourseEditor({
           {t('editor.name')}
           <input
             value={draft.name}
-            autoFocus
+            autoFocus={editing}
+            disabled={!editing}
             onChange={(e) => set('name', e.target.value)}
             placeholder={t('editor.namePlaceholder')}
           />
@@ -107,6 +138,7 @@ export function CourseEditor({
             {t('editor.type')}
             <select
               value={draft.type}
+              disabled={!editing}
               onChange={(e) => set('type', e.target.value as Course['type'])}
             >
               {COURSE_TYPES.map((ct) => (
@@ -120,6 +152,7 @@ export function CourseEditor({
             {t('editor.category')}
             <input
               value={draft.category}
+              disabled={!editing}
               onChange={(e) => set('category', e.target.value)}
               placeholder={t('editor.categoryPlaceholder')}
             />
@@ -131,6 +164,7 @@ export function CourseEditor({
             {t('editor.yearLabel')}
             <select
               value={draft.year}
+              disabled={!editing}
               onChange={(e) => set('year', Number(e.target.value))}
             >
               {Array.from({ length: program.years }, (_, i) => i + 1).map((y) => (
@@ -144,6 +178,7 @@ export function CourseEditor({
             {t('editor.semester')}
             <select
               value={draft.semester}
+              disabled={!editing}
               onChange={(e) => set('semester', e.target.value as Semester)}
             >
               {SEMESTERS.filter((s) => semesters.includes(s)).map((s) => (
@@ -160,45 +195,80 @@ export function CourseEditor({
           <textarea
             rows={2}
             value={draft.description}
+            disabled={!editing}
             onChange={(e) => set('description', e.target.value)}
           />
         </label>
 
         <fieldset className="prereqs">
           <legend>{t('editor.prerequisites')}</legend>
-          {otherCourses.length === 0 && (
-            <p className="muted">{t('editor.noOtherCourses')}</p>
+          {prereqCourses.length === 0 ? (
+            <p className="muted">
+              {editing && otherCourses.length === 0
+                ? t('editor.noOtherCourses')
+                : t('editor.noPrereqs')}
+            </p>
+          ) : (
+            <ul className="prereq-chips">
+              {prereqCourses.map((c) => (
+                <li key={c.id} className="prereq-chip">
+                  <span>{courseLabel(c)}</span>
+                  {editing && (
+                    <button
+                      type="button"
+                      aria-label={t('editor.removePrereq')}
+                      title={t('editor.removePrereq')}
+                      onClick={() => togglePrereq(c.id)}
+                    >
+                      ×
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
           )}
-          <div className="prereq-list">
-            {otherCourses.map((c) => (
-              <label key={c.id} className="prereq-item">
-                <input
-                  type="checkbox"
-                  checked={draft.prerequisites.includes(c.id)}
-                  onChange={() => togglePrereq(c.id)}
-                />
-                <span>
-                  {c.code ? `${c.code} · ` : ''}
-                  {c.name}
-                </span>
-              </label>
-            ))}
-          </div>
+          {editing && available.length > 0 && (
+            <select
+              className="prereq-add"
+              value=""
+              onChange={(e) => {
+                if (e.target.value) togglePrereq(e.target.value);
+              }}
+            >
+              <option value="">{t('editor.addPrereq')}</option>
+              {available.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {courseLabel(c)}
+                </option>
+              ))}
+            </select>
+          )}
         </fieldset>
 
         <div className="modal-actions">
-          {onDelete && (
-            <button type="button" className="danger" onClick={onDelete}>
-              {t('editor.delete')}
-            </button>
+          {editing ? (
+            <>
+              {onDelete && (
+                <button type="button" className="danger" onClick={onDelete}>
+                  {t('editor.delete')}
+                </button>
+              )}
+              <span className="spacer" />
+              <button type="button" onClick={onCancel}>
+                {t('editor.cancel')}
+              </button>
+              <button type="submit" className="primary">
+                {t('editor.save')}
+              </button>
+            </>
+          ) : (
+            <>
+              <span className="spacer" />
+              <button type="button" className="primary" onClick={onCancel}>
+                {t('editor.close')}
+              </button>
+            </>
           )}
-          <span className="spacer" />
-          <button type="button" onClick={onCancel}>
-            {t('editor.cancel')}
-          </button>
-          <button type="submit" className="primary">
-            {t('editor.save')}
-          </button>
         </div>
       </form>
     </div>

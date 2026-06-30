@@ -12,6 +12,9 @@
   --t-seminar: #d6336c;
   --t-project: #e8590c;
   --t-general: #7048e8;
+
+  --hl-prereq: #1c7ed6;
+  --hl-dependent: #e8590c;
 }
 
 * {
@@ -52,6 +55,17 @@ body {
 .subtitle {
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.file-status {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
+}
+
+.file-status .unsaved {
+  color: #d97706;
+  font-weight: 700;
 }
 
 .toolbar {
@@ -158,22 +172,92 @@ button.danger {
   color: var(--muted);
 }
 
+/* ---------- selection legend ---------- */
+.selection-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.8rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+
+.selection-legend .sel-name {
+  font-weight: 700;
+}
+
+.selection-legend .legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+}
+
+.selection-legend .swatch {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.selection-legend .swatch.prereq {
+  background: var(--hl-prereq);
+}
+
+.selection-legend .swatch.dependent {
+  background: var(--hl-dependent);
+}
+
+.selection-legend .clear-sel {
+  margin-inline-start: auto;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+}
+
 /* ---------- course card ---------- */
 .course-card {
+  position: relative;
   border: 1px solid var(--line);
   border-inline-start: 4px solid var(--muted);
   border-radius: 8px;
   padding: 0.5rem 0.6rem;
   margin-bottom: 0.5rem;
   background: #fff;
-}
-
-.course-card.editable {
   cursor: pointer;
+  transition: opacity 0.15s, box-shadow 0.15s;
 }
 
-.course-card.editable:hover {
+.course-card:hover {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* ---------- prereq highlighting ---------- */
+.has-selection .course-card {
+  opacity: 0.4;
+}
+
+.has-selection .course-card.hl-selected,
+.has-selection .course-card.hl-prereq,
+.has-selection .course-card.hl-dependent {
+  opacity: 1;
+}
+
+.course-card.hl-selected {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.course-card.hl-prereq {
+  box-shadow: 0 0 0 2px var(--hl-prereq);
+  background: #e7f5ff;
+}
+
+.course-card.hl-dependent {
+  box-shadow: 0 0 0 2px var(--hl-dependent);
+  background: #fff4e6;
 }
 
 .course-card.type-mandatory {
@@ -382,6 +466,34 @@ button.danger {
   margin-top: 0;
 }
 
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.modal-head h2 {
+  margin-bottom: 0;
+}
+
+.modal-edit {
+  padding: 0.2rem 0.55rem;
+  font-size: 1rem;
+  line-height: 1.2;
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.modal input:disabled,
+.modal select:disabled,
+.modal textarea:disabled {
+  background: var(--bg);
+  color: var(--ink);
+  opacity: 1;
+  cursor: default;
+}
+
 .modal label {
   display: flex;
   flex-direction: column;
@@ -435,21 +547,56 @@ button.danger {
   padding: 0 0.4rem;
 }
 
-.prereq-list {
-  max-height: 160px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
+.prereqs {
+  padding: 0.5rem 0.7rem 0.7rem;
 }
 
-.prereq-item {
-  flex-direction: row !important;
+.prereq-chips {
+  list-style: none;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.prereq-chip {
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  font-weight: 400 !important;
-  color: var(--ink) !important;
-  margin: 0 !important;
+  gap: 0.3rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.2rem;
+  padding-inline-start: 0.6rem;
+  font-size: 0.8rem;
+}
+
+.prereq-chip button {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1;
+  border-radius: 999px;
+}
+
+.prereq-chip button:hover {
+  color: #c92a2a;
+}
+
+.prereq-add {
+  width: 100%;
+  font: inherit;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
 }
 
 .modal-actions {
@@ -461,6 +608,127 @@ button.danger {
 
 .spacer {
   flex: 1;
+}
+
+/* ---------- diff view ---------- */
+.modal-wide {
+  max-width: 680px;
+}
+
+.diff-subtitle {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.diff-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.diff-chip {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.diff-chip.added {
+  color: var(--t-elective);
+  border-color: var(--t-elective);
+}
+
+.diff-chip.removed {
+  color: #c92a2a;
+  border-color: #e08e8e;
+}
+
+.diff-chip.modified {
+  color: var(--t-project);
+  border-color: var(--t-project);
+}
+
+.diff-section {
+  margin-bottom: 1.1rem;
+}
+
+.diff-section h3 {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0 0 0.4rem;
+}
+
+.diff-course-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.diff-course {
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  border-inline-start: 3px solid var(--line);
+  background: var(--bg);
+}
+
+.diff-course.added {
+  border-inline-start-color: var(--t-elective);
+}
+
+.diff-course.removed {
+  border-inline-start-color: #c92a2a;
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.diff-course-mod {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-bottom: 0.5rem;
+}
+
+.diff-course-head {
+  font-weight: 600;
+  font-size: 0.88rem;
+  margin-bottom: 0.35rem;
+}
+
+.diff-field {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  padding: 0.15rem 0;
+}
+
+.diff-field-name {
+  min-width: 7rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.diff-before {
+  color: #c92a2a;
+  text-decoration: line-through;
+}
+
+.diff-arrow {
+  color: var(--muted);
+}
+
+.diff-after {
+  color: var(--t-elective);
+  font-weight: 600;
 }
 
 @media (max-width: 820px) {
