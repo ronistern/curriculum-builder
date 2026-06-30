@@ -1,0 +1,206 @@
+export type Lang = 'he' | 'en';
+
+export interface LanguageMeta {
+  code: Lang;
+  /** Native name, shown in the language switcher. */
+  label: string;
+  dir: 'rtl' | 'ltr';
+}
+
+export const LANGUAGES: LanguageMeta[] = [
+  { code: 'he', label: 'עברית', dir: 'rtl' },
+  { code: 'en', label: 'English', dir: 'ltr' },
+];
+
+export const DEFAULT_LANG: Lang = 'he';
+
+/** Shape of a single language's strings. `en` below is the canonical source. */
+export type Dict = typeof en;
+
+const en = {
+  app: {
+    program: 'Program…',
+    open: 'Open',
+    save: 'Save',
+    saveAs: 'Save As…',
+    export: 'Export',
+    import: 'Import',
+    sample: 'Sample',
+    new: 'New',
+    untitled: 'Untitled',
+    unsaved: 'Unsaved changes',
+    present: '▶ Present',
+    edit: '✎ Edit',
+    confirmSample:
+      'Load the sample Computer Science program? This replaces the current one.',
+    confirmNew: 'Clear all courses and start a blank program?',
+    importError: 'Could not import file: ',
+    openError: 'Could not open file: ',
+    saveError: 'Could not save file: ',
+    language: 'Language',
+  },
+  common: {
+    credits: '{n} cr',
+  },
+  semester: {
+    A: 'Semester A',
+    B: 'Semester B',
+    Summer: 'Summer',
+  },
+  courseType: {
+    mandatory: 'Mandatory',
+    elective: 'Elective',
+    seminar: 'Seminar',
+    project: 'Project',
+    general: 'General studies',
+  },
+  grid: {
+    year: 'Year {n}',
+    addCourse: '+ Add course',
+    editCourse: 'Edit course',
+    legendPrereqs: 'Prerequisites',
+    legendDependents: 'Required by',
+    clearSelection: 'Clear',
+  },
+  editor: {
+    editTitle: 'Edit course',
+    addTitle: 'Add course',
+    code: 'Code',
+    credits: 'Credits',
+    name: 'Name',
+    type: 'Type',
+    category: 'Category',
+    yearLabel: 'Year',
+    year: 'Year {n}',
+    semester: 'Semester',
+    description: 'Description',
+    prerequisites: 'Prerequisites',
+    noOtherCourses: 'No other courses yet.',
+    noPrereqs: 'No prerequisites.',
+    addPrereq: '+ Add prerequisite…',
+    removePrereq: 'Remove prerequisite',
+    delete: 'Delete',
+    cancel: 'Cancel',
+    save: 'Save',
+    codePlaceholder: 'CS101',
+    namePlaceholder: 'Introduction to Computer Science',
+    categoryPlaceholder: 'Core CS',
+  },
+  settings: {
+    title: 'Program details',
+    programName: 'Program name',
+    degree: 'Degree',
+    institution: 'Institution',
+    years: 'Number of years',
+    requiredCredits: 'Required credits',
+    showSummer: 'Show Summer semester column',
+    done: 'Done',
+    degreePlaceholder: 'B.Sc.',
+  },
+  summary: {
+    title: 'Summary',
+    creditsPlanned: 'credits planned',
+    byYear: 'By year',
+    byType: 'By type',
+    noCourses: 'No courses yet.',
+    prereqChecks: 'Prerequisite checks',
+    allGood: '✓ All prerequisites are scheduled earlier.',
+    issue:
+      '{course} needs {prereq} first, but it is scheduled in Year {year} / {semester}.',
+  },
+};
+
+const he: Dict = {
+  app: {
+    program: 'תוכנית…',
+    open: 'פתיחה',
+    save: 'שמירה',
+    saveAs: 'שמירה בשם…',
+    export: 'ייצוא',
+    import: 'ייבוא',
+    sample: 'דוגמה',
+    new: 'חדש',
+    untitled: 'ללא שם',
+    unsaved: 'שינויים שלא נשמרו',
+    present: '▶ מצגת',
+    edit: '✎ עריכה',
+    confirmSample:
+      'לטעון את תוכנית הדוגמה במדעי המחשב? פעולה זו תחליף את התוכנית הנוכחית.',
+    confirmNew: 'לנקות את כל הקורסים ולהתחיל תוכנית ריקה?',
+    importError: 'לא ניתן לייבא את הקובץ: ',
+    openError: 'לא ניתן לפתוח את הקובץ: ',
+    saveError: 'לא ניתן לשמור את הקובץ: ',
+    language: 'שפה',
+  },
+  common: {
+    credits: '{n} נ"ז',
+  },
+  semester: {
+    A: "סמסטר א'",
+    B: "סמסטר ב'",
+    Summer: 'קיץ',
+  },
+  courseType: {
+    mandatory: 'חובה',
+    elective: 'בחירה',
+    seminar: 'סמינר',
+    project: 'פרויקט',
+    general: 'לימודים כלליים',
+  },
+  grid: {
+    year: 'שנה {n}',
+    addCourse: '+ הוספת קורס',
+    editCourse: 'עריכת קורס',
+    legendPrereqs: 'דרישות קדם',
+    legendDependents: 'נדרש עבור',
+    clearSelection: 'ניקוי',
+  },
+  editor: {
+    editTitle: 'עריכת קורס',
+    addTitle: 'הוספת קורס',
+    code: 'קוד',
+    credits: 'נקודות זכות',
+    name: 'שם',
+    type: 'סוג',
+    category: 'קטגוריה',
+    yearLabel: 'שנה',
+    year: 'שנה {n}',
+    semester: 'סמסטר',
+    description: 'תיאור',
+    prerequisites: 'דרישות קדם',
+    noOtherCourses: 'אין עדיין קורסים אחרים.',
+    noPrereqs: 'אין דרישות קדם.',
+    addPrereq: '+ הוספת דרישת קדם…',
+    removePrereq: 'הסרת דרישת קדם',
+    delete: 'מחיקה',
+    cancel: 'ביטול',
+    save: 'שמירה',
+    codePlaceholder: 'CS101',
+    namePlaceholder: 'מבוא למדעי המחשב',
+    categoryPlaceholder: 'ליבת מדעי המחשב',
+  },
+  settings: {
+    title: 'פרטי התוכנית',
+    programName: 'שם התוכנית',
+    degree: 'תואר',
+    institution: 'מוסד',
+    years: 'מספר שנים',
+    requiredCredits: 'נקודות זכות נדרשות',
+    showSummer: 'הצגת עמודת סמסטר קיץ',
+    done: 'סיום',
+    degreePlaceholder: 'B.Sc.',
+  },
+  summary: {
+    title: 'סיכום',
+    creditsPlanned: 'נקודות זכות מתוכננות',
+    byYear: 'לפי שנה',
+    byType: 'לפי סוג',
+    noCourses: 'אין עדיין קורסים.',
+    prereqChecks: 'בדיקת דרישות קדם',
+    allGood: '✓ כל דרישות הקדם מתוזמנות מוקדם יותר.',
+    issue:
+      '{course} מחייב את {prereq} תחילה, אך הוא מתוזמן בשנה {year} / {semester}.',
+  },
+};
+
+export const translations: Record<Lang, Dict> = { he, en };
