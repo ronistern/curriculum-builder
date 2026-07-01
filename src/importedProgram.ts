@@ -452,4 +452,5 @@ export const importedProgram: Program = {
       prerequisites: ['233-1-4401'],
     },
   ],
+  bundles: [],
 };

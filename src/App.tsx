@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
-import type { Course, Program, Semester } from './types';
+import type { Bundle, Course, Program, Semester } from './types';
 import { useProgram } from './storage';
 import { downloadProgram, readProgramFile } from './fileStore';
+import { downloadProgramAsWord } from './wordExport';
 import { emptyProgram } from './sampleData';
 import { CurriculumGrid } from './components/CurriculumGrid';
 import { SummaryPanel } from './components/SummaryPanel';
@@ -18,7 +19,7 @@ type EditorState =
   | { mode: 'add'; seed: Partial<Course> };
 
 export default function App() {
-  const { t } = useI18n();
+  const { t, dir } = useI18n();
   const {
     program,
     setProgram,
@@ -39,29 +40,37 @@ export default function App() {
 
   const editable = !present;
 
-  const upsertCourse = (course: Course) => {
+  /** Drop bundles that no longer have any member courses. */
+  const pruneBundles = (bundles: Bundle[], courses: Course[]): Bundle[] =>
+    bundles.filter((b) => courses.some((c) => c.bundleId === b.id));
+
+  const upsertCourse = (course: Course, bundle?: Bundle) => {
     setProgram((p) => {
       const exists = p.courses.some((c) => c.id === course.id);
-      return {
-        ...p,
-        courses: exists
-          ? p.courses.map((c) => (c.id === course.id ? course : c))
-          : [...p.courses, course],
-      };
+      const courses = exists
+        ? p.courses.map((c) => (c.id === course.id ? course : c))
+        : [...p.courses, course];
+      let bundles = p.bundles;
+      if (bundle) {
+        bundles = bundles.some((b) => b.id === bundle.id)
+          ? bundles.map((b) => (b.id === bundle.id ? bundle : b))
+          : [...bundles, bundle];
+      }
+      return { ...p, courses, bundles: pruneBundles(bundles, courses) };
     });
     setEditor({ mode: 'closed' });
   };
 
   const deleteCourse = (id: string) => {
-    setProgram((p) => ({
-      ...p,
-      courses: p.courses
+    setProgram((p) => {
+      const courses = p.courses
         .filter((c) => c.id !== id)
         .map((c) => ({
           ...c,
           prerequisites: c.prerequisites.filter((pre) => pre !== id),
-        })),
-    }));
+        }));
+      return { ...p, courses, bundles: pruneBundles(p.bundles, courses) };
+    });
     setEditor({ mode: 'closed' });
   };
 
@@ -150,6 +159,9 @@ export default function App() {
                   </button>
                 </>
               )}
+              <button onClick={() => downloadProgramAsWord(program, t, dir)}>
+                {t('app.exportWord')}
+              </button>
               <button onClick={() => compareInput.current?.click()}>
                 {t('app.compare')}
               </button>

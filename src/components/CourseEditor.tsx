@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Course, Program, Semester } from '../types';
+import type { Bundle, Course, Program, Semester } from '../types';
 import { COURSE_TYPES, SEMESTERS } from '../types';
 import { activeSemesters } from '../stats';
 import { useI18n } from '../i18n/useI18n';
@@ -8,10 +8,14 @@ interface Props {
   program: Program;
   /** The course being edited, or a partial seed for a new course. */
   initial: Partial<Course>;
-  onSave: (course: Course) => void;
+  /** Persist the course; `bundle` is the choose-group to upsert, if any. */
+  onSave: (course: Course, bundle?: Bundle) => void;
   onCancel: () => void;
   onDelete?: () => void;
 }
+
+/** Sentinel value for the "create a new bundle" option in the select. */
+const NEW_BUNDLE = '__new__';
 
 function newId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -43,6 +47,14 @@ export function CourseEditor({
     description: initial.description ?? '',
   });
 
+  // Bundle membership is held separately and committed on save, so a cancelled
+  // edit never creates an orphan bundle. `bundleSel` is '' (none), an existing
+  // bundle id, or NEW_BUNDLE.
+  const initialBundle = program.bundles.find((b) => b.id === initial.bundleId);
+  const [bundleSel, setBundleSel] = useState<string>(initialBundle?.id ?? '');
+  const [bundleName, setBundleName] = useState(initialBundle?.name ?? '');
+  const [bundleChoose, setBundleChoose] = useState(initialBundle?.choose ?? 1);
+
   const set = <K extends keyof Course>(key: K, value: Course[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
@@ -68,7 +80,17 @@ export function CourseEditor({
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editing || !draft.name.trim()) return;
-    onSave(draft);
+    if (!bundleSel) {
+      onSave({ ...draft, bundleId: undefined });
+      return;
+    }
+    const id = bundleSel === NEW_BUNDLE ? newId() : bundleSel;
+    const bundle: Bundle = {
+      id,
+      name: bundleName.trim() || t('editor.bundleDefaultName'),
+      choose: Math.max(1, Math.round(bundleChoose) || 1),
+    };
+    onSave({ ...draft, bundleId: id }, bundle);
   };
 
   return (
@@ -242,6 +264,59 @@ export function CourseEditor({
                 </option>
               ))}
             </select>
+          )}
+        </fieldset>
+
+        <fieldset className="bundle-field">
+          <legend>{t('editor.bundle')}</legend>
+          <p className="muted bundle-hint">{t('editor.bundleHint')}</p>
+          <select
+            value={bundleSel}
+            disabled={!editing}
+            onChange={(e) => {
+              const v = e.target.value;
+              setBundleSel(v);
+              if (v === NEW_BUNDLE) {
+                setBundleName('');
+                setBundleChoose(1);
+              } else if (v) {
+                const b = program.bundles.find((x) => x.id === v);
+                setBundleName(b?.name ?? '');
+                setBundleChoose(b?.choose ?? 1);
+              }
+            }}
+          >
+            <option value="">{t('editor.bundleNone')}</option>
+            {program.bundles.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+            <option value={NEW_BUNDLE}>{t('editor.bundleNew')}</option>
+          </select>
+          {bundleSel && (
+            <div className="grid-2 bundle-detail">
+              <label>
+                {t('editor.bundleName')}
+                <input
+                  value={bundleName}
+                  disabled={!editing}
+                  onChange={(e) => setBundleName(e.target.value)}
+                  placeholder={t('editor.bundleNamePlaceholder')}
+                />
+              </label>
+              <label>
+                {t('editor.bundleChoose')}
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={bundleChoose}
+                  disabled={!editing}
+                  onChange={(e) => setBundleChoose(Number(e.target.value))}
+                />
+              </label>
+            </div>
           )}
         </fieldset>
 

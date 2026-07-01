@@ -65,6 +65,8 @@ export function parseProgram(text: string): Program {
   if (!parsed || !Array.isArray(parsed.courses)) {
     throw new Error('File does not look like a curriculum.');
   }
+  // `bundles` was added later; older files omit it.
+  if (!Array.isArray(parsed.bundles)) parsed.bundles = [];
   return parsed;
 }
 

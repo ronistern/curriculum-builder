@@ -109,6 +109,7 @@ export const sampleProgram: Program = {
       prerequisites: ['c-algo', 'c-os'],
     },
   ],
+  bundles: [],
 };
 
 export function emptyProgram(): Program {
@@ -120,5 +121,6 @@ export function emptyProgram(): Program {
     requiredCredits: 120,
     showSummer: false,
     courses: [],
+    bundles: [],
   };
 }

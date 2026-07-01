@@ -34,6 +34,22 @@ export interface Course {
   /** ids of courses that must be completed before this one. */
   prerequisites: string[];
   description?: string;
+  /** Id of the {@link Bundle} this course is an option of, if any. */
+  bundleId?: string;
+}
+
+/**
+ * A "choose-from" group: the student must take `choose` of the courses tagged
+ * with this bundle's id (usually one). Members are not summed individually for
+ * credit totals — the group counts as `choose` of its courses (see
+ * `courseWeights` in stats).
+ */
+export interface Bundle {
+  id: string;
+  /** Display label, e.g. "Choose one elective". */
+  name: string;
+  /** How many member courses the student picks. Usually 1. */
+  choose: number;
 }
 
 export interface Program {
@@ -45,4 +61,6 @@ export interface Program {
   /** Whether the Summer semester column is shown. */
   showSummer: boolean;
   courses: Course[];
+  /** Choose-one (or choose-N) groups referenced by `Course.bundleId`. */
+  bundles: Bundle[];
 }

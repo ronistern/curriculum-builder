@@ -1,6 +1,11 @@
 import { useState } from 'react';
-import type { Course, Program, Semester } from '../types';
-import { activeSemesters, coursesAt, findPrereqIssues } from '../stats';
+import type { Bundle, Course, Program, Semester } from '../types';
+import {
+  activeSemesters,
+  coursesAt,
+  findPrereqIssues,
+  weightedCredits,
+} from '../stats';
 import { CourseCard, type Highlight } from './CourseCard';
 import { useI18n } from '../i18n/useI18n';
 
@@ -39,6 +44,50 @@ export function CurriculumGrid({ program, editable, onEdit, onAdd }: Props) {
   };
 
   const years = Array.from({ length: program.years }, (_, i) => i + 1);
+  const bundleById = new Map(program.bundles.map((b) => [b.id, b]));
+
+  const renderCard = (c: Course) => (
+    <CourseCard
+      key={c.id}
+      course={c}
+      editable={editable}
+      hasIssue={issueCourseIds.has(c.id)}
+      highlight={highlightOf(c.id)}
+      prereqLabels={c.prerequisites
+        .map((id) => byId.get(id)?.code || byId.get(id)?.name)
+        .filter((x): x is string => Boolean(x))}
+      onSelect={() => setSelectedId((cur) => (cur === c.id ? null : c.id))}
+      onOpen={() => onEdit(c)}
+    />
+  );
+
+  /**
+   * Render a cell's courses, drawing each bundle's same-cell members inside a
+   * single "choose one" box at the position of the bundle's first member.
+   */
+  const renderCell = (courses: Course[]) => {
+    const drawnBundles = new Set<string>();
+    return courses.map((c) => {
+      const bundle: Bundle | undefined = c.bundleId
+        ? bundleById.get(c.bundleId)
+        : undefined;
+      if (!bundle) return renderCard(c);
+      if (drawnBundles.has(bundle.id)) return null;
+      drawnBundles.add(bundle.id);
+      const members = courses.filter((m) => m.bundleId === bundle.id);
+      return (
+        <div className="bundle-box" key={`bundle-${bundle.id}`}>
+          <div className="bundle-head">
+            <span className="bundle-name">{bundle.name}</span>
+            <span className="bundle-choose">
+              {t('grid.bundleChoose', { n: bundle.choose, total: members.length })}
+            </span>
+          </div>
+          {members.map(renderCard)}
+        </div>
+      );
+    });
+  };
 
   return (
     <div className={`grid-wrap${selected ? ' has-selection' : ''}`}>
@@ -67,7 +116,7 @@ export function CurriculumGrid({ program, editable, onEdit, onAdd }: Props) {
           >
             {semesters.map((sem) => {
               const courses = coursesAt(program, year, sem);
-              const credits = courses.reduce((s, c) => s + (c.credits || 0), 0);
+              const credits = weightedCredits(program, courses);
               return (
                 <div className="semester-col" key={sem}>
                   <div className="semester-head">
@@ -76,22 +125,7 @@ export function CurriculumGrid({ program, editable, onEdit, onAdd }: Props) {
                       {t('common.credits', { n: credits })}
                     </span>
                   </div>
-                  {courses.map((c) => (
-                    <CourseCard
-                      key={c.id}
-                      course={c}
-                      editable={editable}
-                      hasIssue={issueCourseIds.has(c.id)}
-                      highlight={highlightOf(c.id)}
-                      prereqLabels={c.prerequisites
-                        .map((id) => byId.get(id)?.code || byId.get(id)?.name)
-                        .filter((x): x is string => Boolean(x))}
-                      onSelect={() =>
-                        setSelectedId((cur) => (cur === c.id ? null : c.id))
-                      }
-                      onOpen={() => onEdit(c)}
-                    />
-                  ))}
+                  {renderCell(courses)}
                   {editable && (
                     <button
                       className="add-course"
