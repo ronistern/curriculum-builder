@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { Course } from '../types';
+import type { CourseStatus } from '../studentPlan';
 import { useI18n } from '../i18n/useI18n';
 
 /** Delay before a single click acts, so a double-click can cancel it. */
@@ -13,10 +14,22 @@ interface Props {
   hasIssue: boolean;
   editable: boolean;
   highlight?: Highlight;
+  /** Student-plan status (advise mode only). Absent = still to plan. */
+  status?: CourseStatus;
+  /** When true, a click cycles the plan status instead of selecting. */
+  advise?: boolean;
   onSelect?: () => void;
+  /** Advance the plan status (advise mode click). */
+  onCycle?: () => void;
   /** Open the course detail view (triggered by double-click when editable). */
   onOpen?: () => void;
 }
+
+/** Marker glyph shown for a course's plan status. */
+const STATUS_GLYPH: Record<CourseStatus, string> = {
+  completed: '✓',
+  'in-progress': '⋯',
+};
 
 export function CourseCard({
   course,
@@ -24,7 +37,10 @@ export function CourseCard({
   hasIssue,
   editable,
   highlight,
+  status,
+  advise,
   onSelect,
+  onCycle,
   onOpen,
 }: Props) {
   const { t } = useI18n();
@@ -39,6 +55,10 @@ export function CourseCard({
   );
 
   const handleClick = () => {
+    if (advise) {
+      onCycle?.();
+      return;
+    }
     if (!editable) {
       onSelect?.();
       return;
@@ -62,13 +82,21 @@ export function CourseCard({
     <div
       className={`course-card type-${course.type}${
         highlight ? ` hl-${highlight}` : ''
-      }`}
+      }${status ? ` is-${status}` : ''}${advise ? ' advise' : ''}`}
       onClick={handleClick}
       onDoubleClick={editable ? handleDoubleClick : undefined}
       title={course.description || undefined}
     >
       <div className="course-card-top">
         {course.code && <span className="course-code">{course.code}</span>}
+        {status && (
+          <span
+            className={`status-mark status-${status}`}
+            title={t(`advise.status.${status}`)}
+          >
+            {STATUS_GLYPH[status]}
+          </span>
+        )}
         <span className="course-credits">
           {t('common.credits', { n: course.credits })}
         </span>

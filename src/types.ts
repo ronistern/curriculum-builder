@@ -36,6 +36,12 @@ export interface Course {
   description?: string;
   /** Id of the {@link Bundle} this course is an option of, if any. */
   bundleId?: string;
+  /**
+   * Id of the {@link ElectiveGroup} this course counts toward, if any. Such a
+   * course is an elective "placeholder" the advisor distributes across the grid
+   * to fill a group's credit target.
+   */
+  electiveGroupId?: string;
 }
 
 /**
@@ -52,6 +58,21 @@ export interface Bundle {
   choose: number;
 }
 
+/**
+ * A credit-target group of electives, e.g. "CS electives: 10 pts". The advisor
+ * places elective courses (via `Course.electiveGroupId`) whose credits should
+ * sum to `requiredCredits`. Unlike a {@link Bundle}, members are not weighted —
+ * each placed course counts its full credits, and the group is a target the
+ * placed credits should meet (see `electiveProgress` in stats).
+ */
+export interface ElectiveGroup {
+  id: string;
+  /** Display label, e.g. "CS electives". */
+  name: string;
+  /** Credit points the placed elective courses should sum to. */
+  requiredCredits: number;
+}
+
 export interface Program {
   name: string;
   degree: string;
@@ -63,4 +84,6 @@ export interface Program {
   courses: Course[];
   /** Choose-one (or choose-N) groups referenced by `Course.bundleId`. */
   bundles: Bundle[];
+  /** Elective credit-target groups referenced by `Course.electiveGroupId`. */
+  electiveGroups: ElectiveGroup[];
 }

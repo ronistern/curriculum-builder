@@ -453,4 +453,5 @@ export const importedProgram: Program = {
     },
   ],
   bundles: [],
+  electiveGroups: [],
 };
