@@ -1,5 +1,5 @@
 {
-  "name": "הנדסת תוכנה - שנתון תשפז",
+  "name": "הנדסת תוכנה - שנתון תשפו",
   "degree": "B.Sc.",
   "institution": "אוניברסיטת בן-גוריון בנגב",
   "years": 4,
@@ -285,8 +285,8 @@
     {
       "id": "232-1-2081",
       "code": "232-1-2081",
-      "name": "תכנות מערכות עתירות ביצועים",
-      "credits": 2.5,
+      "name": "מעבדה בתכנות מערכות",
+      "credits": 2,
       "type": "mandatory",
       "category": "הנדסת תוכנה",
       "year": 3,
@@ -457,8 +457,8 @@
       "credits": 3.5,
       "type": "mandatory",
       "category": "אלגוריתמיקה",
-      "year": 2,
-      "semester": "B",
+      "year": 4,
+      "semester": "A",
       "prerequisites": [
         "212-1-2361",
         "214-1-9321",
@@ -478,20 +478,6 @@
       "prerequisites": [
         "233-1-4401"
       ]
-    },
-    {
-      "id": "b30eb5ff-b1f7-43e3-aadd-0db3a039cb4e",
-      "code": "237-2-6101",
-      "name": "למידה עמוקה",
-      "credits": 4,
-      "type": "mandatory",
-      "category": "",
-      "year": 4,
-      "semester": "B",
-      "prerequisites": [
-        "237-1-3503"
-      ],
-      "description": ""
     },
     {
       "id": "51777307-b77c-4383-8084-c09dd3838c91",
@@ -596,13 +582,28 @@
       "semester": "B",
       "prerequisites": [],
       "description": ""
+    },
+    {
+      "id": "1bbb03e6-8e5d-481d-9708-4bd0aa749f3e",
+      "code": "",
+      "name": "פיסיקה מודרנית",
+      "credits": 3.5,
+      "type": "mandatory",
+      "category": "",
+      "year": 2,
+      "semester": "B",
+      "prerequisites": [
+        "212-1-2361",
+        "214-1-9321"
+      ],
+      "description": ""
     }
   ],
   "bundles": [
     {
       "id": "e41628ec-a293-4211-aa42-d802a050ff67",
       "name": "חובה-בחירה מדמ\"ח",
-      "choose": 3
+      "choose": 1
     }
   ],
   "electiveGroups": []

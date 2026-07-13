@@ -529,7 +529,7 @@
       "id": "bedd754c-8654-49a9-9065-fb49d075866c",
       "code": "",
       "name": "קורסים כלליים",
-      "credits": 6,
+      "credits": 5,
       "type": "general",
       "category": "",
       "year": 3,
@@ -602,7 +602,7 @@
     {
       "id": "e41628ec-a293-4211-aa42-d802a050ff67",
       "name": "חובה-בחירה מדמ\"ח",
-      "choose": 3
+      "choose": 1
     }
   ],
   "electiveGroups": []

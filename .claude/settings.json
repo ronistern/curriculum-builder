@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npm run build)",
+      "PowerShell(npm run lint)",
+      "Bash(grep -rl \"import { useI18n } from '../i18n/I18nContext'\" src)",
+      "PowerShell(gh repo create curriculum-builder --private --source=. --remote=origin --push)",
+      "PowerShell(npm run build 2>&1)",
+      "PowerShell(npx tsc --noEmit)",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)",
+      "Bash(python -c ' *)",
+      "Bash(python -c *)",
+      "PowerShell(npx tsc -p tsconfig.app.json --noEmit)",
+      "PowerShell(if \\($?\\) { \"TYPECHECK OK\" })",
+      "PowerShell(npx eslint src/App.tsx src/components/CurriculumGrid.tsx src/components/CourseEditor.tsx src/stats.ts src/types.ts src/fileStore.ts)",
+      "PowerShell(if \\($?\\) { \"LINT OK\" })",
+      "PowerShell(git -C c:\\\\projects\\\\curriculum-builder status --short)",
+      "PowerShell(git -C c:\\\\projects\\\\curriculum-builder diff --stat)",
+      "PowerShell(\"----DIFF STAT----\")",
+      "PowerShell(git -C c:\\\\projects\\\\curriculum-builder status)",
+      "PowerShell(git -C c:\\\\projects\\\\curriculum-builder ls-files src/types.ts src/stats.ts)",
+      "PowerShell(\"---- is types.ts tracked? ----\")",
+      "PowerShell(git -C c:\\\\projects\\\\curriculum-builder diff HEAD -- src/types.ts)",
+      "PowerShell(git -C c:\\\\projects\\\\curriculum-builder log --oneline -6)",
+      "PowerShell(\"---- LOG ----\")",
+      "PowerShell($mods = @\\('playwright','puppeteer','puppeteer-core','@playwright/test'\\); foreach \\($m in $mods\\) { if \\(Test-Path \"c:\\\\projects\\\\curriculum-builder\\\\node_modules\\\\$m\"\\) { \"FOUND: $m\" } }; \"done\")",
+      "Bash(grep -iE \"^vitest$|^jest$|^@vitest$\")",
+      "Bash(npm --version)"
+    ]
+  }
+}
