@@ -128,12 +128,6 @@ button.danger {
   align-items: start;
 }
 
-.present-mode .body {
-  grid-template-columns: 1fr;
-  max-width: 1100px;
-  margin: 0 auto;
-}
-
 .canvas {
   min-width: 0;
 }

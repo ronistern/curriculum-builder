@@ -75,7 +75,6 @@ export default function App() {
     reset,
   } = useProgram();
   const plan = useStudentPlan();
-  const [present, setPresent] = useState(false);
   const [editor, setEditor] = useState<EditorState>({ mode: 'closed' });
   const [showSettings, setShowSettings] = useState(false);
   const [showOpen, setShowOpen] = useState(false);
@@ -85,7 +84,7 @@ export default function App() {
   const planInput = useRef<HTMLInputElement>(null);
 
   const advising = plan.plan !== null;
-  const editable = !present && !advising;
+  const editable = !advising;
 
   /** Drop bundles that no longer have any member courses. */
   const pruneBundles = (bundles: Bundle[], courses: Course[]): Bundle[] =>
@@ -188,11 +187,7 @@ export default function App() {
   );
 
   return (
-    <div
-      className={`app ${!advising && present ? 'present-mode' : ''}${
-        advising ? ' advise-mode' : ''
-      }`}
-    >
+    <div className={`app${advising ? ' advise-mode' : ''}`}>
       <header className="topbar">
         <div className="title-area">
           {advising && plan.plan ? (
@@ -215,7 +210,7 @@ export default function App() {
               {program.institution && (
                 <div className="subtitle">{program.institution}</div>
               )}
-              {canUseFiles && !present && (
+              {canUseFiles && (
                 <FileStatus name={fileName} dirty={dirty} />
               )}
             </>
@@ -235,6 +230,13 @@ export default function App() {
                 <button onClick={() => plan.download()}>{t('app.export')}</button>
               )}
               <button
+                onClick={() =>
+                  canUseFiles ? onOpenPlan() : planInput.current?.click()
+                }
+              >
+                {t('advise.openPlan')}
+              </button>
+              <button
                 className="danger-ghost"
                 onClick={() => {
                   if (!plan.dirty || confirm(t('advise.confirmClose'))) plan.close();
@@ -243,6 +245,7 @@ export default function App() {
                 {t('advise.back')}
               </button>
               <LanguageSwitcher />
+              <HiddenFileInput ref={planInput} onFile={handleImportPlan} />
             </>
           ) : (
             <>
@@ -275,13 +278,6 @@ export default function App() {
                     {t('advise.planForStudent')}
                   </button>
                   <button
-                    onClick={() =>
-                      canUseFiles ? onOpenPlan() : planInput.current?.click()
-                    }
-                  >
-                    {t('advise.openPlan')}
-                  </button>
-                  <button
                     className="danger-ghost"
                     onClick={() => {
                       if (confirm(t('app.confirmNew'))) reset(emptyProgram());
@@ -291,13 +287,9 @@ export default function App() {
                   </button>
                   <HiddenFileInput ref={fileInput} onFile={handleImport} />
                   <HiddenFileInput ref={compareInput} onFile={handleCompare} />
-                  <HiddenFileInput ref={planInput} onFile={handleImportPlan} />
                 </>
               )}
               <LanguageSwitcher />
-              <button className="primary" onClick={() => setPresent((v) => !v)}>
-                {present ? t('app.edit') : t('app.present')}
-              </button>
             </>
           )}
         </div>
@@ -331,7 +323,7 @@ export default function App() {
             onGenerate={generate}
           />
         ) : (
-          !present && <SummaryPanel program={program} />
+          <SummaryPanel program={program} />
         )}
       </div>
 

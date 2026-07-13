@@ -1,9 +1,8 @@
 # Curriculum Builder
 
-An interactive web app for building and presenting the curriculum of a degree
-program (designed with a B.Sc. in mind). Lay out courses across years and
-semesters, set prerequisites, track credit totals, and switch to a clean
-present mode for sharing.
+An interactive web app for building the curriculum of a degree program
+(designed with a B.Sc. in mind). Lay out courses across years and semesters,
+set prerequisites, and track credit totals.
 
 ## Features
 
@@ -16,8 +15,6 @@ present mode for sharing.
   type, and a progress bar.
 - **Prerequisite checks** — warns when a course is scheduled at or before one of
   its prerequisites.
-- **Present mode** — hides editing controls and the summary for a clean,
-  shareable layout.
 - **Persistence** — everything is saved to your browser's local storage
   automatically. Export to / import from a JSON file to back up or share.
 - **Sample program** — load an illustrative B.Sc. in Computer Science to see the
