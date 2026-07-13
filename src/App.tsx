@@ -14,6 +14,7 @@ import { ProgramSettings } from './components/ProgramSettings';
 import { DiffView } from './components/DiffView';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { HiddenFileInput } from './components/HiddenFileInput';
+import { OpenProgramDialog } from './components/OpenProgramDialog';
 import { useI18n } from './i18n/useI18n';
 import type { TKey } from './i18n/useI18n';
 import './App.css';
@@ -77,6 +78,7 @@ export default function App() {
   const [present, setPresent] = useState(false);
   const [editor, setEditor] = useState<EditorState>({ mode: 'closed' });
   const [showSettings, setShowSettings] = useState(false);
+  const [showOpen, setShowOpen] = useState(false);
   const [compareWith, setCompareWith] = useState<Program | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const compareInput = useRef<HTMLInputElement>(null);
@@ -135,6 +137,21 @@ export default function App() {
   const handleCompare = (file: File | undefined) =>
     file &&
     runOrAlert(async () => setCompareWith(await readProgramFile(file)), 'app.compareError');
+
+  // Load a built-in program as a fresh, untitled working copy. Clone it so
+  // edits never mutate the shared module object behind `defaultPrograms`.
+  const handleSelectDefault = (p: Program) => {
+    setShowOpen(false);
+    reset(structuredClone(p));
+  };
+
+  // "Open from file" inside the dialog: native picker where available, else the
+  // hidden upload input used by browsers without the File System Access API.
+  const handleOpenFromFile = () => {
+    setShowOpen(false);
+    if (canUseFiles) onOpen();
+    else fileInput.current?.click();
+  };
 
   const onOpen = () => runOrAlert(open, 'app.openError');
 
@@ -234,24 +251,19 @@ export default function App() {
                   <button onClick={() => setShowSettings(true)}>
                     {t('app.program')}
                   </button>
+                  <button onClick={() => setShowOpen(true)}>
+                    {t('app.open')}
+                  </button>
                   {canUseFiles ? (
-                    <>
-                      <button onClick={onOpen}>{t('app.open')}</button>
-                      <SaveButtons
-                        dirty={dirty}
-                        onSave={() => onSave('save')}
-                        onSaveAs={() => onSave('saveAs')}
-                      />
-                    </>
+                    <SaveButtons
+                      dirty={dirty}
+                      onSave={() => onSave('save')}
+                      onSaveAs={() => onSave('saveAs')}
+                    />
                   ) : (
-                    <>
-                      <button onClick={() => downloadProgram(program)}>
-                        {t('app.export')}
-                      </button>
-                      <button onClick={() => fileInput.current?.click()}>
-                        {t('app.import')}
-                      </button>
-                    </>
+                    <button onClick={() => downloadProgram(program)}>
+                      {t('app.export')}
+                    </button>
                   )}
                   <button onClick={() => downloadProgramAsWord(program, t, dir)}>
                     {t('app.exportWord')}
@@ -338,6 +350,13 @@ export default function App() {
           initial={editor.seed}
           onSave={upsertCourse}
           onCancel={() => setEditor({ mode: 'closed' })}
+        />
+      )}
+      {showOpen && (
+        <OpenProgramDialog
+          onSelect={handleSelectDefault}
+          onOpenFile={handleOpenFromFile}
+          onClose={() => setShowOpen(false)}
         />
       )}
       {showSettings && (

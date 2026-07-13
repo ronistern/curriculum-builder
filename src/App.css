@@ -906,3 +906,60 @@ button.danger {
   width: 100%;
   margin-top: 0.3rem;
 }
+
+/* ---------------------------------------------------------------------------
+ * Open-program dialog
+ * ------------------------------------------------------------------------- */
+.open-dialog .open-hint {
+  margin-top: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.open-dialog .open-list {
+  list-style: none;
+  margin: 0 0 1.1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.open-dialog .open-item {
+  width: 100%;
+  text-align: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  cursor: pointer;
+}
+
+.open-dialog .open-item:hover {
+  border-color: var(--accent);
+}
+
+.open-dialog .open-item-name {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.open-dialog .open-item-sub {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.open-dialog .open-empty {
+  color: var(--muted);
+  margin: 0 0 1.1rem;
+}
+
+.open-dialog .open-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

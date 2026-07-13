@@ -39,6 +39,13 @@ const en = {
     saveError: 'Could not save file: ',
     language: 'Language',
   },
+  open: {
+    title: 'Open a program',
+    hint: 'Start from a built-in program, or open one from a file.',
+    fromFile: 'Open from file…',
+    none: 'No built-in programs.',
+    cancel: 'Cancel',
+  },
   common: {
     credits: '{n} cr',
     yes: 'Yes',
@@ -213,6 +220,13 @@ const he: Dict = {
     openError: 'לא ניתן לפתוח את הקובץ: ',
     saveError: 'לא ניתן לשמור את הקובץ: ',
     language: 'שפה',
+  },
+  open: {
+    title: 'פתיחת תוכנית',
+    hint: 'התחלה מתוכנית מובנית, או פתיחה מקובץ.',
+    fromFile: 'פתיחה מקובץ…',
+    none: 'אין תוכניות מובנות.',
+    cancel: 'ביטול',
   },
   common: {
     credits: '{n} נ"ז',

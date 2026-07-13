@@ -45,6 +45,8 @@ React + TypeScript + Vite. No backend — all data lives in the browser.
 src/
   types.ts                  Data model (Program, Course, types)
   sampleData.ts             Sample CS program + empty-program factory
+  defaultPrograms.ts        Loads the built-in programs shown in the Open dialog
+  defaultPrograms/          Built-in program JSONs (one file per program)
   storage.ts                localStorage persistence + JSON export/import
   stats.ts                  Credit totals, breakdowns, prerequisite checks
   App.tsx                   Top-level layout, toolbar, editor wiring
@@ -60,6 +62,14 @@ src/
     SummaryPanel.tsx        Credit summary + prerequisite warnings
     LanguageSwitcher.tsx    Language dropdown in the toolbar
 ```
+
+## Adding a default program
+
+The **Open** dialog lists a set of built-in programs plus an "Open from file"
+option. The built-ins are every `*.json` file in
+[src/defaultPrograms/](src/defaultPrograms/) — the exact JSON that Export / Save
+produces. Drop a curriculum file into that folder and it appears automatically;
+no code change is needed. The name shown is the program's own `name`/`degree`.
 
 ## Adding a language
 
