@@ -1,5 +1,12 @@
 import type { Course, Program } from './types';
-import { activeSemesters, coursesAt, totalCredits, weightedCredits } from './stats';
+import {
+  activeSemesters,
+  coursesAt,
+  prereqLabels,
+  totalCredits,
+  weightedCredits,
+} from './stats';
+import { slugify, triggerDownload } from './util';
 import type { TKey, TParams } from './i18n/useI18n';
 
 /**
@@ -23,8 +30,7 @@ function escapeHtml(value: string): string {
 
 /** A filesystem-safe `.doc` file name derived from the program name. */
 function wordFileName(program: Program): string {
-  const safe = program.name.replace(/[^\w-]+/g, '_').toLowerCase();
-  return `${safe || 'curriculum'}.doc`;
+  return `${slugify(program.name, 'curriculum')}.doc`;
 }
 
 function tableHead(t: T): string {
@@ -42,10 +48,7 @@ function tableHead(t: T): string {
 }
 
 function courseRow(course: Course, byId: Map<string, Course>, t: T): string {
-  const prereqs = course.prerequisites
-    .map((id) => byId.get(id)?.code || byId.get(id)?.name)
-    .filter((x): x is string => Boolean(x))
-    .join(', ');
+  const prereqs = prereqLabels(course, byId).join(', ');
   const cells = [
     course.code,
     course.name,
@@ -132,11 +135,7 @@ export function downloadProgramAsWord(
   dir: 'rtl' | 'ltr',
 ): void {
   const html = buildHtml(program, t, dir);
+  // Leading BOM so Word detects UTF-8.
   const blob = new Blob(['﻿', html], { type: 'application/msword' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = wordFileName(program);
-  a.click();
-  URL.revokeObjectURL(url);
+  triggerDownload(blob, wordFileName(program));
 }

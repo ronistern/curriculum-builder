@@ -1,10 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
 import type { Program } from './types';
 import { sampleProgram } from './sampleData';
 import {
-  ensurePermission,
-  fileAccessSupported,
-  type FileHandleLike,
   parseProgram,
   pickOpen,
   pickSave,
@@ -12,6 +8,8 @@ import {
   rememberHandle,
   writeHandle,
 } from './fileStore';
+import { serializeJson } from './util';
+import { useFileBackedDoc } from './useFileBackedDoc';
 
 /**
  * Working-copy cache. The source of truth is the file on disk, but we mirror
@@ -34,18 +32,16 @@ function loadCache(): Program {
 
 function saveCache(program: Program): void {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(program));
+    localStorage.setItem(CACHE_KEY, serializeJson(program));
   } catch {
     // storage may be full or unavailable; non-fatal
   }
 }
 
-type Updater = Program | ((prev: Program) => Program);
-
 export interface ProgramStore {
   program: Program;
   /** Apply an edit to the current curriculum and mark it as unsaved. */
-  setProgram: (updater: Updater) => void;
+  setProgram: (updater: Program | ((prev: Program) => Program)) => void;
   /** Name of the file the curriculum is bound to, or null when untitled. */
   fileName: string | null;
   /** True when there are edits not yet written to the file. */
@@ -63,88 +59,30 @@ export interface ProgramStore {
 }
 
 export function useProgram(): ProgramStore {
-  const [program, setProgramState] = useState<Program>(loadCache);
-  const [handle, setHandle] = useState<FileHandleLike | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
-  const canUseFiles = fileAccessSupported();
-
-  // Reconnect to the last-opened file so "Save" can target it again. The data
-  // shown still comes from the cache; this only restores the binding + name.
-  useEffect(() => {
-    let cancelled = false;
-    recallHandle()
-      .then((h) => {
-        if (!cancelled && h) {
-          setHandle(h);
-          setFileName(h.name);
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Mirror every change to the working-copy cache.
-  useEffect(() => {
-    saveCache(program);
-  }, [program]);
-
-  const setProgram = useCallback((updater: Updater) => {
-    setProgramState((prev) =>
-      typeof updater === 'function'
-        ? (updater as (p: Program) => Program)(prev)
-        : updater,
-    );
-    setDirty(true);
-  }, []);
-
-  const bind = useCallback((h: FileHandleLike) => {
-    setHandle(h);
-    setFileName(h.name);
-    setDirty(false);
-    rememberHandle(h).catch(() => {});
-  }, []);
-
-  const saveAs = useCallback(async () => {
-    const h = await pickSave(program);
-    if (h) bind(h);
-  }, [program, bind]);
-
-  const save = useCallback(async () => {
-    if (!handle || !(await ensurePermission(handle))) {
-      await saveAs();
-      return;
-    }
-    await writeHandle(handle, program);
-    setDirty(false);
-  }, [handle, program, saveAs]);
-
-  const open = useCallback(async () => {
-    const result = await pickOpen();
-    if (!result) return;
-    setProgramState(result.program);
-    bind(result.handle);
-  }, [bind]);
-
-  const reset = useCallback((seed: Program) => {
-    setProgramState(seed);
-    setHandle(null);
-    setFileName(null);
-    setDirty(true);
-    rememberHandle(null).catch(() => {});
-  }, []);
+  const store = useFileBackedDoc<Program>({
+    load: loadCache,
+    persist: saveCache,
+    pickOpen: async () => {
+      const result = await pickOpen();
+      return result && { handle: result.handle, value: result.program };
+    },
+    pickSave,
+    write: writeHandle,
+    recall: recallHandle,
+    onBind: (handle) => {
+      rememberHandle(handle).catch(() => {});
+    },
+  });
 
   return {
-    program,
-    setProgram,
-    fileName,
-    dirty,
-    canUseFiles,
-    open,
-    save,
-    saveAs,
-    reset,
+    program: store.doc,
+    setProgram: store.setDoc,
+    fileName: store.fileName,
+    dirty: store.dirty,
+    canUseFiles: store.canUseFiles,
+    open: store.open,
+    save: store.save,
+    saveAs: store.saveAs,
+    reset: (seed) => store.replace(seed, { dirty: true }),
   };
 }

@@ -394,6 +394,58 @@ button.danger {
   margin-top: 0.5rem;
 }
 
+/* ---------- elective requirement (credit-target) box ---------- */
+.elective-box {
+  border: 1px dashed var(--t-elective);
+  border-radius: 10px;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.elective-box .course-card:last-child {
+  margin-bottom: 0;
+}
+
+.elective-progress {
+  font-size: 0.72rem;
+  color: var(--t-elective);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.elective-progress.unmet {
+  color: var(--t-project);
+}
+
+/* Elective requirements editor (program settings) */
+.elective-group-list {
+  list-style: none;
+  margin: 0.25rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.elective-group-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.elective-group-row .grow {
+  flex: 1;
+}
+
+.elective-group-row .credits-field {
+  width: 5.5rem;
+}
+
+.elective-group-row .danger-ghost {
+  padding: 0.35rem 0.6rem;
+}
+
 /* ---------- summary ---------- */
 .summary {
   background: var(--panel);
@@ -475,6 +527,11 @@ button.danger {
 .ok {
   color: var(--t-elective);
   font-size: 0.85rem;
+}
+
+.warn {
+  color: var(--t-project);
+  font-weight: 600;
 }
 
 .muted {
@@ -789,4 +846,63 @@ button.danger {
   .summary {
     position: static;
   }
+}
+
+/* ---------- advise (student plan) mode ---------- */
+.course-card .status-mark {
+  font-weight: 700;
+}
+.course-card .status-mark.status-completed {
+  color: var(--t-elective);
+}
+.course-card .status-mark.status-in-progress {
+  color: var(--t-project);
+}
+
+/* Completed courses recede; in-progress ones are tinted. */
+.course-card.is-completed {
+  background: #f1f8f3;
+  border-inline-start-color: var(--t-elective);
+  opacity: 0.75;
+}
+.course-card.is-in-progress {
+  background: #fff6ef;
+  border-inline-start-color: var(--t-project);
+}
+.course-card.advise {
+  cursor: pointer;
+}
+
+/* Panel form fields (reused by AdvisePanel). */
+.summary .field {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  gap: 0.25rem;
+  margin-bottom: 0.6rem;
+}
+.summary .field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+.summary .field input,
+.summary .field select {
+  font: inherit;
+  font-weight: 400;
+  color: var(--ink);
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.summary .field input:focus,
+.summary .field select:focus {
+  outline: 2px solid var(--accent);
+  border-color: var(--accent);
+}
+.summary button.generate {
+  width: 100%;
+  margin-top: 0.3rem;
 }

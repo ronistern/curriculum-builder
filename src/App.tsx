@@ -1,17 +1,59 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { Bundle, Course, Program, Semester } from './types';
 import { useProgram } from './storage';
+import { useStudentPlan } from './studentPlanStore';
+import { advisedProgram, generatePlan, type CourseStatus } from './studentPlan';
 import { downloadProgram, readProgramFile } from './fileStore';
 import { downloadProgramAsWord } from './wordExport';
 import { emptyProgram } from './sampleData';
 import { CurriculumGrid } from './components/CurriculumGrid';
 import { SummaryPanel } from './components/SummaryPanel';
+import { AdvisePanel } from './components/AdvisePanel';
 import { CourseEditor } from './components/CourseEditor';
 import { ProgramSettings } from './components/ProgramSettings';
 import { DiffView } from './components/DiffView';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
+import { HiddenFileInput } from './components/HiddenFileInput';
 import { useI18n } from './i18n/useI18n';
+import type { TKey } from './i18n/useI18n';
 import './App.css';
+
+/** File name + unsaved indicator shown under the title. */
+function FileStatus({ name, dirty }: { name: string | null; dirty: boolean }) {
+  const { t } = useI18n();
+  return (
+    <div className="file-status">
+      {name ?? t('app.untitled')}
+      {dirty && (
+        <span className="unsaved" title={t('app.unsaved')}>
+          {' •'}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** The Save / Save As button pair, shared by curriculum and plan toolbars. */
+function SaveButtons({
+  dirty,
+  onSave,
+  onSaveAs,
+}: {
+  dirty: boolean;
+  onSave: () => void;
+  onSaveAs: () => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <>
+      <button onClick={onSave}>
+        {t('app.save')}
+        {dirty ? ' •' : ''}
+      </button>
+      <button onClick={onSaveAs}>{t('app.saveAs')}</button>
+    </>
+  );
+}
 
 type EditorState =
   | { mode: 'closed' }
@@ -31,14 +73,17 @@ export default function App() {
     saveAs,
     reset,
   } = useProgram();
+  const plan = useStudentPlan();
   const [present, setPresent] = useState(false);
   const [editor, setEditor] = useState<EditorState>({ mode: 'closed' });
   const [showSettings, setShowSettings] = useState(false);
   const [compareWith, setCompareWith] = useState<Program | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const compareInput = useRef<HTMLInputElement>(null);
+  const planInput = useRef<HTMLInputElement>(null);
 
-  const editable = !present;
+  const advising = plan.plan !== null;
+  const editable = !present && !advising;
 
   /** Drop bundles that no longer have any member courses. */
   const pruneBundles = (bundles: Bundle[], courses: Course[]): Bundle[] =>
@@ -74,146 +119,208 @@ export default function App() {
     setEditor({ mode: 'closed' });
   };
 
-  const handleImport = async (file: File | undefined) => {
-    if (!file) return;
+  /** Run an async file action, surfacing any failure as an alert. */
+  const runOrAlert = async (fn: () => unknown, errKey: TKey) => {
     try {
-      const imported = await readProgramFile(file);
-      setProgram(imported);
+      await fn();
     } catch (err) {
-      alert(t('app.importError') + (err as Error).message);
+      alert(t(errKey) + (err as Error).message);
     }
   };
 
-  const handleCompare = async (file: File | undefined) => {
-    if (!file) return;
-    try {
-      setCompareWith(await readProgramFile(file));
-    } catch (err) {
-      alert(t('app.compareError') + (err as Error).message);
-    }
-  };
+  const handleImport = (file: File | undefined) =>
+    file &&
+    runOrAlert(async () => setProgram(await readProgramFile(file)), 'app.importError');
 
-  const onOpen = async () => {
-    try {
-      await open();
-    } catch (err) {
-      alert(t('app.openError') + (err as Error).message);
-    }
-  };
+  const handleCompare = (file: File | undefined) =>
+    file &&
+    runOrAlert(async () => setCompareWith(await readProgramFile(file)), 'app.compareError');
 
-  const onSave = async (mode: 'save' | 'saveAs') => {
-    try {
-      await (mode === 'saveAs' ? saveAs() : save());
-    } catch (err) {
-      alert(t('app.saveError') + (err as Error).message);
-    }
-  };
+  const onOpen = () => runOrAlert(open, 'app.openError');
+
+  const onSave = (mode: 'save' | 'saveAs') =>
+    runOrAlert(mode === 'saveAs' ? saveAs : save, 'app.saveError');
+
+  const onOpenPlan = () => runOrAlert(plan.open, 'advise.openError');
+
+  const handleImportPlan = (file: File | undefined) =>
+    file && runOrAlert(() => plan.importFile(file), 'advise.openError');
+
+  const onSavePlan = (mode: 'save' | 'saveAs') =>
+    runOrAlert(mode === 'saveAs' ? plan.saveAs : plan.save, 'app.saveError');
+
+  // Cycle a course's plan status: to-plan → completed → in-progress → to-plan.
+  const cycleStatus = (id: string) =>
+    plan.setPlan((p) => {
+      const next: Record<string, CourseStatus> = { ...p.status };
+      const cur = next[id];
+      if (!cur) next[id] = 'completed';
+      else if (cur === 'completed') next[id] = 'in-progress';
+      else delete next[id];
+      return { ...p, status: next };
+    });
+
+  const generate = () =>
+    plan.setPlan((p) => ({ ...p, schedule: generatePlan(p).schedule }));
+
+  // The grid in advise mode shows to-plan courses at their scheduled slot;
+  // completed / in-progress courses stay at their curriculum slot.
+  const advised = useMemo(
+    () => (plan.plan ? advisedProgram(plan.plan) : null),
+    [plan.plan],
+  );
 
   return (
-    <div className={`app ${present ? 'present-mode' : ''}`}>
+    <div
+      className={`app ${!advising && present ? 'present-mode' : ''}${
+        advising ? ' advise-mode' : ''
+      }`}
+    >
       <header className="topbar">
         <div className="title-area">
-          <h1>
-            {program.degree} {program.name}
-          </h1>
-          {program.institution && (
-            <div className="subtitle">{program.institution}</div>
-          )}
-          {canUseFiles && !present && (
-            <div className="file-status">
-              {fileName ?? t('app.untitled')}
-              {dirty && (
-                <span className="unsaved" title={t('app.unsaved')}>
-                  {' '}
-                  •
-                </span>
+          {advising && plan.plan ? (
+            <>
+              <h1>
+                {plan.plan.student.name || t('advise.untitledStudent')}
+              </h1>
+              <div className="subtitle">
+                {t('advise.subtitle', { program: plan.plan.curriculum.name })}
+              </div>
+              {canUseFiles && (
+                <FileStatus name={plan.fileName} dirty={plan.dirty} />
               )}
-            </div>
+            </>
+          ) : (
+            <>
+              <h1>
+                {program.degree} {program.name}
+              </h1>
+              {program.institution && (
+                <div className="subtitle">{program.institution}</div>
+              )}
+              {canUseFiles && !present && (
+                <FileStatus name={fileName} dirty={dirty} />
+              )}
+            </>
           )}
         </div>
 
         <div className="toolbar">
-          {editable && (
+          {advising ? (
             <>
-              <button onClick={() => setShowSettings(true)}>
-                {t('app.program')}
-              </button>
               {canUseFiles ? (
-                <>
-                  <button onClick={onOpen}>{t('app.open')}</button>
-                  <button onClick={() => onSave('save')}>
-                    {t('app.save')}
-                    {dirty ? ' •' : ''}
-                  </button>
-                  <button onClick={() => onSave('saveAs')}>
-                    {t('app.saveAs')}
-                  </button>
-                </>
+                <SaveButtons
+                  dirty={plan.dirty}
+                  onSave={() => onSavePlan('save')}
+                  onSaveAs={() => onSavePlan('saveAs')}
+                />
               ) : (
-                <>
-                  <button onClick={() => downloadProgram(program)}>
-                    {t('app.export')}
-                  </button>
-                  <button onClick={() => fileInput.current?.click()}>
-                    {t('app.import')}
-                  </button>
-                </>
+                <button onClick={() => plan.download()}>{t('app.export')}</button>
               )}
-              <button onClick={() => downloadProgramAsWord(program, t, dir)}>
-                {t('app.exportWord')}
-              </button>
-              <button onClick={() => compareInput.current?.click()}>
-                {t('app.compare')}
-              </button>
               <button
                 className="danger-ghost"
                 onClick={() => {
-                  if (confirm(t('app.confirmNew'))) reset(emptyProgram());
+                  if (!plan.dirty || confirm(t('advise.confirmClose'))) plan.close();
                 }}
               >
-                {t('app.new')}
+                {t('advise.back')}
               </button>
-              <input
-                ref={fileInput}
-                type="file"
-                accept="application/json"
-                hidden
-                onChange={(e) => {
-                  handleImport(e.target.files?.[0]);
-                  e.target.value = '';
-                }}
-              />
-              <input
-                ref={compareInput}
-                type="file"
-                accept="application/json"
-                hidden
-                onChange={(e) => {
-                  handleCompare(e.target.files?.[0]);
-                  e.target.value = '';
-                }}
-              />
+              <LanguageSwitcher />
+            </>
+          ) : (
+            <>
+              {editable && (
+                <>
+                  <button onClick={() => setShowSettings(true)}>
+                    {t('app.program')}
+                  </button>
+                  {canUseFiles ? (
+                    <>
+                      <button onClick={onOpen}>{t('app.open')}</button>
+                      <SaveButtons
+                        dirty={dirty}
+                        onSave={() => onSave('save')}
+                        onSaveAs={() => onSave('saveAs')}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => downloadProgram(program)}>
+                        {t('app.export')}
+                      </button>
+                      <button onClick={() => fileInput.current?.click()}>
+                        {t('app.import')}
+                      </button>
+                    </>
+                  )}
+                  <button onClick={() => downloadProgramAsWord(program, t, dir)}>
+                    {t('app.exportWord')}
+                  </button>
+                  <button onClick={() => compareInput.current?.click()}>
+                    {t('app.compare')}
+                  </button>
+                  <button onClick={() => plan.start(program)}>
+                    {t('advise.planForStudent')}
+                  </button>
+                  <button
+                    onClick={() =>
+                      canUseFiles ? onOpenPlan() : planInput.current?.click()
+                    }
+                  >
+                    {t('advise.openPlan')}
+                  </button>
+                  <button
+                    className="danger-ghost"
+                    onClick={() => {
+                      if (confirm(t('app.confirmNew'))) reset(emptyProgram());
+                    }}
+                  >
+                    {t('app.new')}
+                  </button>
+                  <HiddenFileInput ref={fileInput} onFile={handleImport} />
+                  <HiddenFileInput ref={compareInput} onFile={handleCompare} />
+                  <HiddenFileInput ref={planInput} onFile={handleImportPlan} />
+                </>
+              )}
+              <LanguageSwitcher />
+              <button className="primary" onClick={() => setPresent((v) => !v)}>
+                {present ? t('app.edit') : t('app.present')}
+              </button>
             </>
           )}
-          <LanguageSwitcher />
-          <button className="primary" onClick={() => setPresent((v) => !v)}>
-            {present ? t('app.edit') : t('app.present')}
-          </button>
         </div>
       </header>
 
       <div className="body">
         <main className="canvas">
-          <CurriculumGrid
-            program={program}
-            editable={editable}
-            onEdit={(course) => setEditor({ mode: 'edit', course })}
-            onAdd={(year, semester: Semester) =>
-              setEditor({ mode: 'add', seed: { year, semester } })
-            }
-          />
+          {advising && advised && plan.plan ? (
+            <CurriculumGrid
+              program={advised}
+              editable={false}
+              advise
+              statusOf={(id) => plan.plan!.status[id]}
+              onCycleStatus={cycleStatus}
+            />
+          ) : (
+            <CurriculumGrid
+              program={program}
+              editable={editable}
+              onEdit={(course) => setEditor({ mode: 'edit', course })}
+              onAdd={(year, semester: Semester) =>
+                setEditor({ mode: 'add', seed: { year, semester } })
+              }
+            />
+          )}
         </main>
-        {!present && <SummaryPanel program={program} />}
+        {advising && plan.plan ? (
+          <AdvisePanel
+            plan={plan.plan}
+            onChange={plan.setPlan}
+            onGenerate={generate}
+          />
+        ) : (
+          !present && <SummaryPanel program={program} />
+        )}
       </div>
 
       {editor.mode === 'edit' && (

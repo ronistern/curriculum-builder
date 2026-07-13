@@ -3,37 +3,32 @@ import { COURSE_TYPES } from '../types';
 import {
   creditsByType,
   creditsByYear,
+  electiveProgress,
   findPrereqIssues,
   totalCredits,
 } from '../stats';
 import { useI18n } from '../i18n/useI18n';
+import { CreditProgress } from './CreditProgress';
 
 export function SummaryPanel({ program }: { program: Program }) {
   const { t } = useI18n();
   const total = totalCredits(program);
   const byType = creditsByType(program);
   const byYear = creditsByYear(program);
+  const electives = electiveProgress(program);
   const issues = findPrereqIssues(program);
-  const pct = program.requiredCredits
-    ? Math.min(100, Math.round((total / program.requiredCredits) * 100))
-    : 0;
 
   return (
     <aside className="summary">
       <h2>{t('summary.title')}</h2>
 
       <div className="summary-block">
-        <div className="big-number">
-          {total}
-          <span className="of"> / {program.requiredCredits}</span>
-        </div>
-        <div className="muted">{t('summary.creditsPlanned')}</div>
-        <div className="progress">
-          <div
-            className={`progress-bar ${total > program.requiredCredits ? 'over' : ''}`}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
+        <CreditProgress
+          value={total}
+          total={program.requiredCredits}
+          label={t('summary.creditsPlanned')}
+          over={total > program.requiredCredits}
+        />
       </div>
 
       <div className="summary-block">
@@ -62,6 +57,23 @@ export function SummaryPanel({ program }: { program: Program }) {
           <p className="muted">{t('summary.noCourses')}</p>
         )}
       </div>
+
+      {electives.length > 0 && (
+        <div className="summary-block">
+          <h3>{t('summary.electives')}</h3>
+          {electives.map((p) => (
+            <div className="summary-row" key={p.group.id}>
+              <span>{p.group.name || t('summary.electiveUnnamed')}</span>
+              <span className={p.met ? 'ok' : 'warn'}>
+                {t('grid.electiveProgress', {
+                  placed: p.placed,
+                  required: p.required,
+                })}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="summary-block">
         <h3>{t('summary.prereqChecks')}</h3>

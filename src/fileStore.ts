@@ -1,4 +1,5 @@
 import type { Program } from './types';
+import { serializeJson, slugify, triggerDownload } from './util';
 
 /**
  * Low-level persistence primitives for curriculum files. No React here — these
@@ -54,9 +55,27 @@ const JSON_TYPE: FilePickerAccept = {
   accept: { 'application/json': ['.json'] },
 };
 
+const PLAN_TYPE: FilePickerAccept = {
+  description: 'Student plan',
+  accept: { 'application/json': ['.plan.json', '.json'] },
+};
+
 /** Whether the browser supports reading/writing files in place. */
 export function fileAccessSupported(): boolean {
   return typeof window !== 'undefined' && 'showSaveFilePicker' in window;
+}
+
+/**
+ * Backfill fields added after the initial format so older files load cleanly.
+ * Mutates and returns `program`. Shared by {@link parseProgram} and the student
+ * plan parser (which embeds a program snapshot).
+ */
+export function normalizeProgram(program: Program): Program {
+  // `bundles` was added later; older files omit it.
+  if (!Array.isArray(program.bundles)) program.bundles = [];
+  // `electiveGroups` was added later still.
+  if (!Array.isArray(program.electiveGroups)) program.electiveGroups = [];
+  return program;
 }
 
 /** Parse and validate a curriculum from raw JSON text. Throws on bad input. */
@@ -65,29 +84,41 @@ export function parseProgram(text: string): Program {
   if (!parsed || !Array.isArray(parsed.courses)) {
     throw new Error('File does not look like a curriculum.');
   }
-  // `bundles` was added later; older files omit it.
-  if (!Array.isArray(parsed.bundles)) parsed.bundles = [];
-  return parsed;
+  return normalizeProgram(parsed);
 }
 
 /** A filesystem-safe default file name derived from the program name. */
 export function suggestedFileName(program: Program): string {
-  const safe = program.name.replace(/[^\w-]+/g, '_').toLowerCase();
-  return `${safe || 'curriculum'}.json`;
+  return `${slugify(program.name, 'curriculum')}.json`;
 }
 
 function serialize(program: Program): string {
-  return JSON.stringify(program, null, 2);
+  return serializeJson(program);
 }
 
 /* ----------------------------------------------------------------------------
  * File System Access API operations
  * ------------------------------------------------------------------------- */
 
+/** Read the raw text behind a handle. */
+export async function readHandleText(handle: FileHandleLike): Promise<string> {
+  const file = await handle.getFile();
+  return file.text();
+}
+
+/** Write raw text to an existing handle. */
+export async function writeHandleText(
+  handle: FileHandleLike,
+  text: string,
+): Promise<void> {
+  const writable = await handle.createWritable();
+  await writable.write(text);
+  await writable.close();
+}
+
 /** Read and parse the curriculum behind a handle. */
 export async function readHandle(handle: FileHandleLike): Promise<Program> {
-  const file = await handle.getFile();
-  return parseProgram(await file.text());
+  return parseProgram(await readHandleText(handle));
 }
 
 /** Write a curriculum to an existing handle. */
@@ -95,9 +126,7 @@ export async function writeHandle(
   handle: FileHandleLike,
   program: Program,
 ): Promise<void> {
-  const writable = await handle.createWritable();
-  await writable.write(serialize(program));
-  await writable.close();
+  await writeHandleText(handle, serialize(program));
 }
 
 /**
@@ -115,6 +144,41 @@ export async function ensurePermission(
 }
 
 /**
+ * Show the native open-file picker, returning the first chosen handle, or null
+ * if the API is unavailable or the user dismisses it. Centralizes the
+ * non-standard window cast and cancellation handling.
+ */
+async function showOpenPicker(
+  type: FilePickerAccept,
+): Promise<FileHandleLike | null> {
+  const w = window as unknown as FsPickerWindow;
+  if (!w.showOpenFilePicker) return null;
+  try {
+    const [handle] = await w.showOpenFilePicker({ multiple: false, types: [type] });
+    return handle ?? null;
+  } catch {
+    return null; // user dismissed the picker
+  }
+}
+
+/**
+ * Show the native save-file picker, returning the chosen handle, or null if the
+ * API is unavailable or the user dismisses it.
+ */
+async function showSavePicker(
+  suggestedName: string,
+  type: FilePickerAccept,
+): Promise<FileHandleLike | null> {
+  const w = window as unknown as FsPickerWindow;
+  if (!w.showSaveFilePicker) return null;
+  try {
+    return await w.showSaveFilePicker({ suggestedName, types: [type] });
+  } catch {
+    return null; // user dismissed the picker
+  }
+}
+
+/**
  * Prompt the user to open a curriculum file. Returns null if they cancel.
  * Throws if the chosen file is not a valid curriculum.
  */
@@ -122,15 +186,8 @@ export async function pickOpen(): Promise<{
   handle: FileHandleLike;
   program: Program;
 } | null> {
-  const w = window as unknown as FsPickerWindow;
-  if (!w.showOpenFilePicker) return null;
-  let handles: FileHandleLike[];
-  try {
-    handles = await w.showOpenFilePicker({ multiple: false, types: [JSON_TYPE] });
-  } catch {
-    return null; // user dismissed the picker
-  }
-  const handle = handles[0];
+  const handle = await showOpenPicker(JSON_TYPE);
+  if (!handle) return null;
   return { handle, program: await readHandle(handle) };
 }
 
@@ -141,19 +198,42 @@ export async function pickOpen(): Promise<{
 export async function pickSave(
   program: Program,
 ): Promise<FileHandleLike | null> {
-  const w = window as unknown as FsPickerWindow;
-  if (!w.showSaveFilePicker) return null;
-  let handle: FileHandleLike;
-  try {
-    handle = await w.showSaveFilePicker({
-      suggestedName: suggestedFileName(program),
-      types: [JSON_TYPE],
-    });
-  } catch {
-    return null; // user dismissed the picker
-  }
+  const handle = await showSavePicker(suggestedFileName(program), JSON_TYPE);
+  if (!handle) return null;
   await writeHandle(handle, program);
   return handle;
+}
+
+/**
+ * Prompt the user to open a student-plan file. Returns the handle and its raw
+ * text (caller parses), or null if they cancel.
+ */
+export async function pickOpenPlan(): Promise<{
+  handle: FileHandleLike;
+  text: string;
+} | null> {
+  const handle = await showOpenPicker(PLAN_TYPE);
+  if (!handle) return null;
+  return { handle, text: await readHandleText(handle) };
+}
+
+/**
+ * Prompt for a save location for a student plan, write `text` there, and return
+ * the new handle. Returns null if the user cancels.
+ */
+export async function pickSavePlan(
+  suggestedName: string,
+  text: string,
+): Promise<FileHandleLike | null> {
+  const handle = await showSavePicker(suggestedName, PLAN_TYPE);
+  if (!handle) return null;
+  await writeHandleText(handle, text);
+  return handle;
+}
+
+/** Download raw text as a file (fallback for browsers without File System Access). */
+export function downloadText(text: string, fileName: string): void {
+  triggerDownload(new Blob([text], { type: 'application/json' }), fileName);
 }
 
 /* ----------------------------------------------------------------------------
@@ -162,13 +242,7 @@ export async function pickSave(
 
 /** Download the program as a `.json` file. */
 export function downloadProgram(program: Program): void {
-  const blob = new Blob([serialize(program)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = suggestedFileName(program);
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadText(serialize(program), suggestedFileName(program));
 }
 
 /** Read and parse a curriculum from an uploaded File. */

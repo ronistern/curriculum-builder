@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { Bundle, Course, Program, Semester } from '../types';
 import { COURSE_TYPES, SEMESTERS } from '../types';
 import { activeSemesters } from '../stats';
+import { newId } from '../util';
+import { Modal } from './Modal';
 import { useI18n } from '../i18n/useI18n';
 
 interface Props {
@@ -17,13 +19,6 @@ interface Props {
 /** Sentinel value for the "create a new bundle" option in the select. */
 const NEW_BUNDLE = '__new__';
 
-function newId(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
-  }
-  return 'c-' + Math.random().toString(36).slice(2);
-}
-
 export function CourseEditor({
   program,
   initial,
@@ -35,7 +30,7 @@ export function CourseEditor({
   // Existing courses open read-only; a new course (no id yet) starts editable.
   const [editing, setEditing] = useState(!initial.id);
   const [draft, setDraft] = useState<Course>({
-    id: initial.id ?? newId(),
+    id: initial.id ?? newId('c-'),
     code: initial.code ?? '',
     name: initial.name ?? '',
     credits: initial.credits ?? 3,
@@ -48,12 +43,22 @@ export function CourseEditor({
   });
 
   // Bundle membership is held separately and committed on save, so a cancelled
-  // edit never creates an orphan bundle. `bundleSel` is '' (none), an existing
-  // bundle id, or NEW_BUNDLE.
+  // edit never creates an orphan bundle. `sel` is '' (none), an existing bundle
+  // id, or NEW_BUNDLE; `name`/`choose` are the edited bundle's fields.
   const initialBundle = program.bundles.find((b) => b.id === initial.bundleId);
-  const [bundleSel, setBundleSel] = useState<string>(initialBundle?.id ?? '');
-  const [bundleName, setBundleName] = useState(initialBundle?.name ?? '');
-  const [bundleChoose, setBundleChoose] = useState(initialBundle?.choose ?? 1);
+  const [bundle, setBundle] = useState({
+    sel: initialBundle?.id ?? '',
+    name: initialBundle?.name ?? '',
+    choose: initialBundle?.choose ?? 1,
+  });
+
+  // Elective-requirement membership. A course tagged to a group is a filler
+  // toward that group's credit target; its name is optional (the grid falls
+  // back to the group's name). Mutually exclusive with a choose-one bundle.
+  const electiveGroups = program.electiveGroups ?? [];
+  const [electiveSel, setElectiveSel] = useState<string>(
+    initial.electiveGroupId ?? '',
+  );
 
   const set = <K extends keyof Course>(key: K, value: Course[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
@@ -79,27 +84,32 @@ export function CourseEditor({
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editing || !draft.name.trim()) return;
-    if (!bundleSel) {
-      onSave({ ...draft, bundleId: undefined });
+    // Elective placeholders may be unnamed; everything else needs a name.
+    if (!editing || (!electiveSel && !draft.name.trim())) return;
+    if (electiveSel) {
+      onSave({
+        ...draft,
+        type: 'elective',
+        bundleId: undefined,
+        electiveGroupId: electiveSel,
+      });
       return;
     }
-    const id = bundleSel === NEW_BUNDLE ? newId() : bundleSel;
-    const bundle: Bundle = {
+    if (!bundle.sel) {
+      onSave({ ...draft, bundleId: undefined, electiveGroupId: undefined });
+      return;
+    }
+    const id = bundle.sel === NEW_BUNDLE ? newId('c-') : bundle.sel;
+    const saved: Bundle = {
       id,
-      name: bundleName.trim() || t('editor.bundleDefaultName'),
-      choose: Math.max(1, Math.round(bundleChoose) || 1),
+      name: bundle.name.trim() || t('editor.bundleDefaultName'),
+      choose: Math.max(1, Math.round(bundle.choose) || 1),
     };
-    onSave({ ...draft, bundleId: id }, bundle);
+    onSave({ ...draft, bundleId: id, electiveGroupId: undefined }, saved);
   };
 
   return (
-    <div className="modal-backdrop" onClick={onCancel}>
-      <form
-        className="modal"
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={submit}
-      >
+    <Modal onClose={onCancel} onSubmit={submit}>
         <div className="modal-head">
           <h2>
             {!initial.id
@@ -151,7 +161,11 @@ export function CourseEditor({
             autoFocus={editing}
             disabled={!editing}
             onChange={(e) => set('name', e.target.value)}
-            placeholder={t('editor.namePlaceholder')}
+            placeholder={
+              electiveSel
+                ? t('editor.electiveNamePlaceholder')
+                : t('editor.namePlaceholder')
+            }
           />
         </label>
 
@@ -267,22 +281,48 @@ export function CourseEditor({
           )}
         </fieldset>
 
+        {electiveGroups.length > 0 && (
+          <fieldset className="bundle-field">
+            <legend>{t('editor.elective')}</legend>
+            <p className="muted bundle-hint">{t('editor.electiveHint')}</p>
+            <select
+              value={electiveSel}
+              disabled={!editing}
+              onChange={(e) => {
+                const v = e.target.value;
+                setElectiveSel(v);
+                if (v) {
+                  setBundle((b) => ({ ...b, sel: '' }));
+                  set('type', 'elective');
+                }
+              }}
+            >
+              <option value="">{t('editor.electiveNone')}</option>
+              {electiveGroups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name || t('summary.electiveUnnamed')}
+                </option>
+              ))}
+            </select>
+          </fieldset>
+        )}
+
+        {!electiveSel && (
         <fieldset className="bundle-field">
           <legend>{t('editor.bundle')}</legend>
           <p className="muted bundle-hint">{t('editor.bundleHint')}</p>
           <select
-            value={bundleSel}
+            value={bundle.sel}
             disabled={!editing}
             onChange={(e) => {
               const v = e.target.value;
-              setBundleSel(v);
               if (v === NEW_BUNDLE) {
-                setBundleName('');
-                setBundleChoose(1);
+                setBundle({ sel: v, name: '', choose: 1 });
               } else if (v) {
                 const b = program.bundles.find((x) => x.id === v);
-                setBundleName(b?.name ?? '');
-                setBundleChoose(b?.choose ?? 1);
+                setBundle({ sel: v, name: b?.name ?? '', choose: b?.choose ?? 1 });
+              } else {
+                setBundle((b) => ({ ...b, sel: '' }));
               }
             }}
           >
@@ -294,14 +334,16 @@ export function CourseEditor({
             ))}
             <option value={NEW_BUNDLE}>{t('editor.bundleNew')}</option>
           </select>
-          {bundleSel && (
+          {bundle.sel && (
             <div className="grid-2 bundle-detail">
               <label>
                 {t('editor.bundleName')}
                 <input
-                  value={bundleName}
+                  value={bundle.name}
                   disabled={!editing}
-                  onChange={(e) => setBundleName(e.target.value)}
+                  onChange={(e) =>
+                    setBundle((b) => ({ ...b, name: e.target.value }))
+                  }
                   placeholder={t('editor.bundleNamePlaceholder')}
                 />
               </label>
@@ -311,14 +353,17 @@ export function CourseEditor({
                   type="number"
                   min={1}
                   step={1}
-                  value={bundleChoose}
+                  value={bundle.choose}
                   disabled={!editing}
-                  onChange={(e) => setBundleChoose(Number(e.target.value))}
+                  onChange={(e) =>
+                    setBundle((b) => ({ ...b, choose: Number(e.target.value) }))
+                  }
                 />
               </label>
             </div>
           )}
         </fieldset>
+        )}
 
         <div className="modal-actions">
           {editing ? (
@@ -345,7 +390,6 @@ export function CourseEditor({
             </>
           )}
         </div>
-      </form>
-    </div>
+    </Modal>
   );
 }

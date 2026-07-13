@@ -2,6 +2,13 @@ import { useState } from 'react';
 import type { Course, Program } from '../types';
 import type { CourseField, ProgramField } from '../diff';
 import { diffPrograms } from '../diff';
+import {
+  DIFF_COLORS,
+  diffFieldHtml,
+  diffHeading,
+  escHtml,
+} from '../diffClipboard';
+import { Modal } from './Modal';
 import { useI18n } from '../i18n/useI18n';
 import type { TKey } from '../i18n/useI18n';
 
@@ -76,20 +83,10 @@ export function DiffView({ base, other, onClose }: Props) {
 
   /* ---- Build a self-contained representation for the clipboard ---- */
 
-  const esc = (s: string) =>
-    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-  const RED = '#c92a2a';
-  const GREEN = '#2f9e44';
-  const MUTED = '#6b7585';
-
-  const fieldHtml = (label: string, before: string, after: string) =>
-    `<div style="font-size:13px;margin:2px 0;"><b>${esc(label)}:</b> ` +
-    `<span style="color:${RED};text-decoration:line-through;">${esc(before)}</span> → ` +
-    `<span style="color:${GREEN};">${esc(after)}</span></div>`;
-
-  const heading = (text: string) =>
-    `<div style="font-weight:600;color:${MUTED};font-size:13px;margin:14px 0 4px;">${esc(text)}</div>`;
+  const esc = escHtml;
+  const { removed: RED, added: GREEN, muted: MUTED, text: TEXT } = DIFF_COLORS;
+  const fieldHtml = diffFieldHtml;
+  const heading = diffHeading;
 
   const buildHtml = () => {
     const p: string[] = [];
@@ -164,7 +161,7 @@ export function DiffView({ base, other, onClose }: Props) {
       }
     }
 
-    return `<div dir="${dir}" style="font-family:'Segoe UI',Arial,sans-serif;color:#1f2530;line-height:1.4;">${p.join(
+    return `<div dir="${dir}" style="font-family:'Segoe UI',Arial,sans-serif;color:${TEXT};line-height:1.4;">${p.join(
       '',
     )}</div>`;
   };
@@ -233,11 +230,7 @@ export function DiffView({ base, other, onClose }: Props) {
   };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div
-        className="modal modal-wide"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal onClose={onClose} className="modal-wide">
         <h2>{t('diff.title')}</h2>
         <div className="diff-subtitle">
           {t('diff.against', { base: base.name, other: other.name })}
@@ -351,7 +344,6 @@ export function DiffView({ base, other, onClose }: Props) {
             {t('diff.close')}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

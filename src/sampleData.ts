@@ -110,6 +110,7 @@ export const sampleProgram: Program = {
     },
   ],
   bundles: [],
+  electiveGroups: [],
 };
 
 export function emptyProgram(): Program {
@@ -122,5 +123,6 @@ export function emptyProgram(): Program {
     showSummer: false,
     courses: [],
     bundles: [],
+    electiveGroups: [],
   };
 }
