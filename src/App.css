@@ -957,3 +957,84 @@ button.danger {
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
+/* ---------- advise: remove control on a schedule card ---------- */
+.course-card-top {
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.course-remove {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0 0.2rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  border-radius: 999px;
+  /* Only reveal on hover so it doesn't clutter every card. */
+  opacity: 0;
+}
+.course-card:hover .course-remove {
+  opacity: 1;
+}
+.course-remove:hover {
+  color: #c92a2a;
+}
+
+/* ---------- add-course picker ---------- */
+.picker-search {
+  width: 100%;
+  font: inherit;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  margin-bottom: 0.75rem;
+}
+
+.picker-groups {
+  max-height: 55vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.picker-group-name {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0 0 0.35rem;
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  padding: 0.15rem 0;
+}
+
+.picker-inplan {
+  margin-inline-start: 0.5rem;
+  font-size: 0.66rem;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 0 0.35rem;
+  vertical-align: middle;
+}
+
+/* ---------- advise: missing-catalog banner ---------- */
+.catalog-missing {
+  max-width: 32rem;
+  margin: 2rem auto;
+  padding: 1.25rem 1.5rem;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  align-items: center;
+}

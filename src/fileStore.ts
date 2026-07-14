@@ -1,5 +1,5 @@
 import type { Program } from './types';
-import { serializeJson, slugify, triggerDownload } from './util';
+import { newId, serializeJson, slugify, triggerDownload } from './util';
 
 /**
  * Low-level persistence primitives for curriculum files. No React here — these
@@ -75,6 +75,10 @@ export function normalizeProgram(program: Program): Program {
   if (!Array.isArray(program.bundles)) program.bundles = [];
   // `electiveGroups` was added later still.
   if (!Array.isArray(program.electiveGroups)) program.electiveGroups = [];
+  // `id` was added with the catalog-reference model; backfill a stable one so
+  // student plans can reference this catalog. Prefer a deterministic slug so the
+  // same file resolves consistently; fall back to a random id for unnamed ones.
+  if (!program.id) program.id = slugify(program.name, '') || newId('p-');
   return program;
 }
 

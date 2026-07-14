@@ -29,7 +29,9 @@ export interface Course {
   type: CourseType;
   /** Free-form grouping, e.g. "Core CS", "Mathematics". */
   category: string;
-  year: number; // 1-based
+  /** Recommended year of study (1-based) for this course in the program. */
+  year: number;
+  /** The semester the course is offered / taught in. */
   semester: Semester;
   /** ids of courses that must be completed before this one. */
   prerequisites: string[];
@@ -74,6 +76,8 @@ export interface ElectiveGroup {
 }
 
 export interface Program {
+  /** Stable catalog identity, referenced by a {@link ../studentPlan.StudentPlan}. */
+  id: string;
   name: string;
   degree: string;
   institution: string;

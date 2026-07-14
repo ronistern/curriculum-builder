@@ -9,6 +9,7 @@ import {
   writeHandle,
 } from './fileStore';
 import { serializeJson } from './util';
+import { upsertCatalog } from './catalogLibrary';
 import { useFileBackedDoc } from './useFileBackedDoc';
 
 /**
@@ -33,6 +34,9 @@ function loadCache(): Program {
 function saveCache(program: Program): void {
   try {
     localStorage.setItem(CACHE_KEY, serializeJson(program));
+    // Keep the catalog library in sync so student plans referencing this
+    // program resolve against its latest version.
+    upsertCatalog(program);
   } catch {
     // storage may be full or unavailable; non-fatal
   }

@@ -18,6 +18,7 @@ import type { Program } from './types';
  *   ו→Year3/B, ז→Year4/A, ח→Year4/B (odd letters = semester A / סתיו).
  */
 export const importedProgram: Program = {
+  id: 'bgu-se-2026',
   name: 'הנדסת תוכנה',
   degree: 'B.Sc.',
   institution: 'אוניברסיטת בן-גוריון בנגב',

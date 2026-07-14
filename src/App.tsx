@@ -2,7 +2,14 @@ import { useMemo, useRef, useState } from 'react';
 import type { Bundle, Course, Program, Semester } from './types';
 import { useProgram } from './storage';
 import { useStudentPlan } from './studentPlanStore';
-import { advisedProgram, generatePlan, type CourseStatus } from './studentPlan';
+import {
+  advisedProgram,
+  generatePlan,
+  planCourses,
+  type CourseStatus,
+  type TermSlot,
+} from './studentPlan';
+import { allCatalogs } from './catalogLibrary';
 import { downloadProgram, readProgramFile } from './fileStore';
 import { downloadProgramAsWord } from './wordExport';
 import { emptyProgram } from './sampleData';
@@ -10,6 +17,7 @@ import { CurriculumGrid } from './components/CurriculumGrid';
 import { SummaryPanel } from './components/SummaryPanel';
 import { AdvisePanel } from './components/AdvisePanel';
 import { CourseEditor } from './components/CourseEditor';
+import { CoursePicker } from './components/CoursePicker';
 import { ProgramSettings } from './components/ProgramSettings';
 import { DiffView } from './components/DiffView';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
@@ -79,9 +87,12 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showOpen, setShowOpen] = useState(false);
   const [compareWith, setCompareWith] = useState<Program | null>(null);
+  // Advise mode: the cell a course is being added into (null = picker closed).
+  const [picker, setPicker] = useState<TermSlot | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const compareInput = useRef<HTMLInputElement>(null);
   const planInput = useRef<HTMLInputElement>(null);
+  const catalogInput = useRef<HTMLInputElement>(null);
 
   const advising = plan.plan !== null;
   const editable = !advising;
@@ -176,14 +187,103 @@ export default function App() {
       return { ...p, status: next };
     });
 
-  const generate = () =>
-    plan.setPlan((p) => ({ ...p, schedule: generatePlan(p).schedule }));
+  const catalog = plan.catalog;
 
-  // The grid in advise mode shows to-plan courses at their scheduled slot;
-  // completed / in-progress courses stay at their curriculum slot.
+  // Remove a course from this student's plan (also clearing any status / slot /
+  // manual placement). A base catalog course goes onto `excluded`; an added
+  // course is dropped from `extraCourses`. Either way it's re-addable via the
+  // grid's per-cell "+".
+  const removeCourse = (id: string) =>
+    plan.setPlan((p) => {
+      const status = { ...p.status };
+      const schedule = { ...p.schedule };
+      const placements = { ...p.placements };
+      delete status[id];
+      delete schedule[id];
+      delete placements[id];
+      const isBase = !!catalog?.courses.some((c) => c.id === id);
+      return {
+        ...p,
+        status,
+        schedule,
+        placements,
+        excluded:
+          isBase && !p.excluded.includes(id) ? [...p.excluded, id] : p.excluded,
+        extraCourses: isBase
+          ? p.extraCourses
+          : p.extraCourses.filter((c) => c.id !== id),
+      };
+    });
+
+  // Add a catalog course into a specific cell (year+semester). A base course is
+  // un-excluded and pinned there; a course from another program is snapshotted
+  // into `extraCourses`. Either way its placement overrides the auto-scheduler.
+  const addCourseAt = (course: Course, slot: TermSlot) => {
+    plan.setPlan((p) => {
+      const isBase = !!catalog?.courses.some((c) => c.id === course.id);
+      const placements = { ...p.placements, [course.id]: slot };
+      return isBase
+        ? { ...p, placements, excluded: p.excluded.filter((x) => x !== course.id) }
+        : {
+            ...p,
+            placements,
+            extraCourses: p.extraCourses.some((c) => c.id === course.id)
+              ? p.extraCourses
+              : [...p.extraCourses, course],
+          };
+    });
+    setPicker(null);
+  };
+
+  const generate = () =>
+    catalog &&
+    plan.setPlan((p) => ({ ...p, schedule: generatePlan(p, catalog).schedule }));
+
+  // Courses selectable in the per-cell picker: every course across all catalogs
+  // in the library (deduped by id). Courses already in this plan are included
+  // too — picking one re-places it into the chosen cell — and flagged via
+  // `pickerInPlan` so the picker can mark them.
+  const pickerInPlan = useMemo(
+    () =>
+      plan.plan && catalog
+        ? new Set(planCourses(catalog, plan.plan).map((c) => c.id))
+        : new Set<string>(),
+    [plan.plan, catalog],
+  );
+  const pickerGroups = useMemo(() => {
+    if (!plan.plan || !catalog) return [];
+    const seen = new Set<string>();
+    return allCatalogs()
+      .map((prog) => ({
+        program: `${prog.degree} ${prog.name}`.trim(),
+        courses: prog.courses.filter((c) => {
+          if (seen.has(c.id)) return false;
+          seen.add(c.id);
+          return true;
+        }),
+      }))
+      .filter((g) => g.courses.length > 0);
+  }, [plan.plan, catalog]);
+
+  // Resolve the referenced catalog from an opened file when it isn't in the
+  // library (e.g. a plan saved on another device), adopting its id.
+  const handleProvideCatalog = (file: File | undefined) =>
+    file &&
+    runOrAlert(async () => {
+      const opened = await readProgramFile(file);
+      plan.provideCatalog(opened);
+      plan.setPlan((p) => ({
+        ...p,
+        catalogId: opened.id,
+        catalogName: opened.name,
+      }));
+    }, 'advise.openError');
+
+  // The schedule grid places to-plan courses (scheduled) + in-progress courses
+  // (at the current term); completed courses are listed in the AdvisePanel.
   const advised = useMemo(
-    () => (plan.plan ? advisedProgram(plan.plan) : null),
-    [plan.plan],
+    () => (plan.plan && catalog ? advisedProgram(plan.plan, catalog) : null),
+    [plan.plan, catalog],
   );
 
   return (
@@ -196,7 +296,9 @@ export default function App() {
                 {plan.plan.student.name || t('advise.untitledStudent')}
               </h1>
               <div className="subtitle">
-                {t('advise.subtitle', { program: plan.plan.curriculum.name })}
+                {t('advise.subtitle', {
+                  program: catalog?.name ?? plan.plan.catalogName,
+                })}
               </div>
               {canUseFiles && (
                 <FileStatus name={plan.fileName} dirty={plan.dirty} />
@@ -297,14 +399,29 @@ export default function App() {
 
       <div className="body">
         <main className="canvas">
-          {advising && advised && plan.plan ? (
-            <CurriculumGrid
-              program={advised}
-              editable={false}
-              advise
-              statusOf={(id) => plan.plan!.status[id]}
-              onCycleStatus={cycleStatus}
-            />
+          {advising && plan.plan ? (
+            advised && catalog ? (
+              <CurriculumGrid
+                program={advised}
+                editable={false}
+                advise
+                statusOf={(id) => plan.plan!.status[id]}
+                onCycleStatus={cycleStatus}
+                onRemove={removeCourse}
+                onAddAt={(year, semester) => setPicker({ year, semester })}
+              />
+            ) : (
+              <div className="catalog-missing">
+                <p>{t('advise.catalogMissing', { name: plan.plan.catalogName })}</p>
+                <button
+                  className="primary"
+                  onClick={() => catalogInput.current?.click()}
+                >
+                  {t('advise.openCatalog')}
+                </button>
+                <HiddenFileInput ref={catalogInput} onFile={handleProvideCatalog} />
+              </div>
+            )
           ) : (
             <CurriculumGrid
               program={program}
@@ -317,11 +434,14 @@ export default function App() {
           )}
         </main>
         {advising && plan.plan ? (
-          <AdvisePanel
-            plan={plan.plan}
-            onChange={plan.setPlan}
-            onGenerate={generate}
-          />
+          catalog && (
+            <AdvisePanel
+              plan={plan.plan}
+              catalog={catalog}
+              onChange={plan.setPlan}
+              onGenerate={generate}
+            />
+          )
         ) : (
           <SummaryPanel program={program} />
         )}
@@ -363,6 +483,17 @@ export default function App() {
           base={compareWith}
           other={program}
           onClose={() => setCompareWith(null)}
+        />
+      )}
+      {picker && (
+        <CoursePicker
+          groups={pickerGroups}
+          inPlan={pickerInPlan}
+          target={`${t('grid.year', { n: picker.year })} · ${t(
+            `semester.${picker.semester}`,
+          )}`}
+          onSelect={(course) => addCourseAt(course, picker)}
+          onClose={() => setPicker(null)}
         />
       )}
     </div>

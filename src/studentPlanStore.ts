@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import type { Program } from './types';
 import {
   pickOpenPlan,
@@ -10,6 +11,7 @@ import {
   serializeStudentPlan,
   type StudentPlan,
 } from './studentPlan';
+import { getCatalog, upsertCatalog } from './catalogLibrary';
 import { slugify, triggerDownload } from './util';
 import { useFileBackedDoc } from './useFileBackedDoc';
 
@@ -42,7 +44,7 @@ function saveCache(plan: StudentPlan | null): void {
 
 /** A filesystem-safe default name for a plan file. */
 function suggestedName(plan: StudentPlan): string {
-  const parts = [plan.student.name, plan.curriculum.name]
+  const parts = [plan.student.name, plan.catalogName]
     .map((s) => slugify(s, ''))
     .filter(Boolean);
   return `${parts.join('-') || 'student'}.plan.json`;
@@ -51,11 +53,16 @@ function suggestedName(plan: StudentPlan): string {
 export interface StudentPlanStore {
   plan: StudentPlan | null;
   setPlan: (updater: StudentPlan | ((prev: StudentPlan) => StudentPlan)) => void;
+  /** The catalog the active plan references, resolved from the library. Null
+   * when no plan is open or the referenced catalog can't be found. */
+  catalog: Program | null;
+  /** Supply the referenced catalog (e.g. after opening its file) so it resolves. */
+  provideCatalog: (catalog: Program) => void;
   fileName: string | null;
   dirty: boolean;
   canUseFiles: boolean;
-  /** Begin a fresh plan against a curriculum snapshot (enters advise mode). */
-  start: (curriculum: Program) => void;
+  /** Begin a fresh plan against a catalog (enters advise mode). */
+  start: (catalog: Program) => void;
   /** Open an existing `.plan.json`. */
   open: () => Promise<void>;
   /** Read a plan from an uploaded file (fallback path). */
@@ -87,8 +94,28 @@ export function useStudentPlan(): StudentPlanStore {
       plan ? writeHandleText(handle, serializeStudentPlan(plan)) : Promise.resolve(),
   });
 
+  // Resolve the referenced catalog: an explicitly-provided one (opened from a
+  // file for a plan whose catalog isn't in the library) takes precedence,
+  // otherwise look it up in the library by the plan's `catalogId`.
+  const plan = store.doc;
+  const [provided, setProvided] = useState<Program | null>(null);
+  const catalog = useMemo(() => {
+    if (!plan) return null;
+    if (provided && provided.id === plan.catalogId) return provided;
+    return getCatalog(plan.catalogId);
+    // Only the referenced id (not every plan edit) should re-resolve the catalog.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan?.catalogId, provided]);
+
+  const provideCatalog = (c: Program) => {
+    upsertCatalog(c);
+    setProvided(c);
+  };
+
   return {
     plan: store.doc,
+    catalog,
+    provideCatalog,
     // The generic hook types updates over `StudentPlan | null`, but the public
     // API only ever mutates an existing plan (advise mode); the null-guard in
     // the hook makes a no-op if somehow called with no plan.
@@ -96,8 +123,11 @@ export function useStudentPlan(): StudentPlanStore {
     fileName: store.fileName,
     dirty: store.dirty,
     canUseFiles: store.canUseFiles,
-    start: (curriculum) =>
-      store.replace(newStudentPlan(curriculum), { dirty: true }),
+    start: (catalog) => {
+      upsertCatalog(catalog);
+      setProvided(catalog);
+      store.replace(newStudentPlan(catalog), { dirty: true });
+    },
     open: store.open,
     importFile: async (file) =>
       store.replace(parseStudentPlan(await file.text()), {

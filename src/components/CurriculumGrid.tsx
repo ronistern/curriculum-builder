@@ -26,6 +26,10 @@ interface Props {
   statusOf?: (id: string) => CourseStatus | undefined;
   /** Advise mode: advance a course's plan status on click. */
   onCycleStatus?: (id: string) => void;
+  /** Advise mode: remove a course from the student's plan. */
+  onRemove?: (id: string) => void;
+  /** Advise mode: add a course from the catalog into a specific cell. */
+  onAddAt?: (year: number, semester: Semester) => void;
 }
 
 export function CurriculumGrid({
@@ -36,6 +40,8 @@ export function CurriculumGrid({
   advise = false,
   statusOf,
   onCycleStatus,
+  onRemove,
+  onAddAt,
 }: Props) {
   const { t } = useI18n();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -88,6 +94,7 @@ export function CurriculumGrid({
       onSelect={() => setSelectedId((cur) => (cur === c.id ? null : c.id))}
       onCycle={() => onCycleStatus?.(c.id)}
       onOpen={() => onEdit?.(c)}
+      onRemove={advise && onRemove ? () => onRemove(c.id) : undefined}
     />
   );
 
@@ -204,7 +211,15 @@ export function CurriculumGrid({
                       {t('grid.addCourse')}
                     </button>
                   )}
-                  {!editable && courses.length === 0 && (
+                  {advise && onAddAt && (
+                    <button
+                      className="add-course"
+                      onClick={() => onAddAt(year, sem)}
+                    >
+                      {t('grid.addCourse')}
+                    </button>
+                  )}
+                  {!editable && !onAddAt && courses.length === 0 && (
                     <p className="muted empty">—</p>
                   )}
                 </div>

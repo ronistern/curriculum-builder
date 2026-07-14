@@ -23,6 +23,8 @@ interface Props {
   onCycle?: () => void;
   /** Open the course detail view (triggered by double-click when editable). */
   onOpen?: () => void;
+  /** Advise mode: remove this course from the student's plan. */
+  onRemove?: () => void;
 }
 
 /** Marker glyph shown for a course's plan status. */
@@ -42,6 +44,7 @@ export function CourseCard({
   onSelect,
   onCycle,
   onOpen,
+  onRemove,
 }: Props) {
   const { t } = useI18n();
   // When the card is editable a double-click opens the editor, so a single
@@ -100,6 +103,20 @@ export function CourseCard({
         <span className="course-credits">
           {t('common.credits', { n: course.credits })}
         </span>
+        {onRemove && (
+          <button
+            type="button"
+            className="course-remove"
+            aria-label={t('grid.removeFromPlan')}
+            title={t('grid.removeFromPlan')}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+          >
+            ×
+          </button>
+        )}
       </div>
       <div className="course-name">{course.name}</div>
       <div className="course-meta">

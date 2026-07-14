@@ -69,6 +69,7 @@ const en = {
     clearSelection: 'Clear',
     bundleChoose: 'Choose {n} of {total}',
     electiveProgress: '{placed} / {required} cr',
+    removeFromPlan: 'Remove from plan',
   },
   editor: {
     editTitle: 'Edit course',
@@ -182,8 +183,12 @@ const en = {
     currentSemester: 'Current semester',
     maxCredits: 'Max credits / semester',
     generate: 'Generate plan',
+    catalogMissing:
+      'The catalog for this plan (“{name}”) isn’t available. Open its file to continue.',
+    openCatalog: 'Open catalog file…',
     hintTitle: 'How to mark courses',
-    hint: 'Click a course to cycle: to plan → completed ✓ → in progress ⋯ → to plan.',
+    hint: 'Click a course to cycle: to plan → completed ✓ → in progress ⋯ → to plan. Use × to remove a course.',
+    addHint: 'Click “+ Add course” in any semester to add a course from the catalog.',
     unschedulableTitle: 'Could not schedule',
     allScheduled: '✓ Every remaining course was placed.',
     status: {
@@ -194,6 +199,14 @@ const en = {
       prereqs: '{course}: prerequisites are not satisfied in time.',
       capacity: '{course}: no term has room under the credit cap.',
     },
+  },
+  picker: {
+    title: 'Add a course',
+    target: 'Into {cell}',
+    search: 'Search by name or code…',
+    none: 'No courses available to add.',
+    inPlan: 'in plan',
+    cancel: 'Cancel',
   },
 };
 
@@ -249,6 +262,7 @@ const he: Dict = {
     clearSelection: 'ניקוי',
     bundleChoose: 'יש לבחור {n} מתוך {total}',
     electiveProgress: '{placed} / {required} נ"ז',
+    removeFromPlan: 'הסרה מהתכנית',
   },
   editor: {
     editTitle: 'עריכת קורס',
@@ -362,8 +376,12 @@ const he: Dict = {
     currentSemester: 'סמסטר נוכחי',
     maxCredits: 'מקסימום נ"ז לסמסטר',
     generate: 'יצירת תכנית',
+    catalogMissing:
+      'הקטלוג של תכנית זו ("{name}") אינו זמין. יש לפתוח את הקובץ שלו כדי להמשיך.',
+    openCatalog: 'פתיחת קובץ קטלוג…',
     hintTitle: 'סימון קורסים',
-    hint: 'לחיצה על קורס מחליפה מצב: לתכנון ← הושלם ✓ ← בתהליך ⋯ ← לתכנון.',
+    hint: 'לחיצה על קורס מחליפה מצב: לתכנון ← הושלם ✓ ← בתהליך ⋯ ← לתכנון. לחיצה על × מסירה קורס.',
+    addHint: 'לחיצה על "+ הוספת קורס" בכל סמסטר מוסיפה קורס מהקטלוג.',
     unschedulableTitle: 'לא ניתן לשבץ',
     allScheduled: '✓ כל הקורסים שנותרו שובצו.',
     status: {
@@ -374,6 +392,14 @@ const he: Dict = {
       prereqs: '{course}: דרישות הקדם אינן מתקיימות בזמן.',
       capacity: '{course}: אין סמסטר עם מקום מתחת למגבלת הנ"ז.',
     },
+  },
+  picker: {
+    title: 'הוספת קורס',
+    target: 'אל {cell}',
+    search: 'חיפוש לפי שם או קוד…',
+    none: 'אין קורסים זמינים להוספה.',
+    inPlan: 'בתכנית',
+    cancel: 'ביטול',
   },
 };
 

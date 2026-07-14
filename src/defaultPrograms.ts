@@ -1,5 +1,6 @@
 import type { Program } from './types';
 import { normalizeProgram } from './fileStore';
+import { upsertCatalog } from './catalogLibrary';
 
 /**
  * Built-in starter curricula, bundled at build time from every `*.json` file in
@@ -19,8 +20,14 @@ const modules = import.meta.glob<{ default: Program }>(
 );
 
 export const defaultPrograms: DefaultProgram[] = Object.entries(modules)
-  .map(([path, mod]) => ({
-    id: path.split('/').pop()!.replace(/\.json$/, ''),
-    program: normalizeProgram(mod.default),
-  }))
+  .map(([path, mod]) => {
+    const id = path.split('/').pop()!.replace(/\.json$/, '');
+    const program = normalizeProgram(mod.default);
+    // The file name is the built-in's stable, unique id — authoritative over any
+    // id baked into the JSON (several shipped files share a copy-pasted id, which
+    // would otherwise collide in the catalog library and drop programs).
+    program.id = id;
+    upsertCatalog(program);
+    return { id, program };
+  })
   .sort((a, b) => a.program.name.localeCompare(b.program.name));

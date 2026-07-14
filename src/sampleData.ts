@@ -1,7 +1,9 @@
 import type { Program } from './types';
+import { newId } from './util';
 
 /** A small illustrative B.Sc. in Computer Science to show the layout. */
 export const sampleProgram: Program = {
+  id: 'sample-cs',
   name: 'Computer Science',
   degree: 'B.Sc.',
   institution: 'My University',
@@ -115,6 +117,7 @@ export const sampleProgram: Program = {
 
 export function emptyProgram(): Program {
   return {
+    id: newId('p-'),
     name: 'New Degree Program',
     degree: 'B.Sc.',
     institution: '',

@@ -1,3 +1,4 @@
+import type { Program } from '../types';
 import { activeSemesters } from '../stats';
 import {
   generatePlan,
@@ -9,20 +10,21 @@ import { CreditProgress } from './CreditProgress';
 
 interface Props {
   plan: StudentPlan;
+  /** The catalog the plan references (already resolved by the caller). */
+  catalog: Program;
   onChange: (updater: (prev: StudentPlan) => StudentPlan) => void;
   onGenerate: () => void;
 }
 
-export function AdvisePanel({ plan, onChange, onGenerate }: Props) {
+export function AdvisePanel({ plan, catalog, onChange, onGenerate }: Props) {
   const { t } = useI18n();
-  const program = plan.curriculum;
-  const credits = planCredits(plan);
+  const credits = planCredits(plan, catalog);
   // Recomputed from the current statuses/term/cap so warnings always reflect
   // the live inputs (the "Generate" button applies the schedule to the grid).
-  const { unschedulable } = generatePlan(plan);
+  const { unschedulable } = generatePlan(plan, catalog);
 
-  const years = Array.from({ length: Math.max(program.years, 1) }, (_, i) => i + 1);
-  const semesters = activeSemesters(program);
+  const years = Array.from({ length: Math.max(catalog.years, 1) }, (_, i) => i + 1);
+  const semesters = activeSemesters(catalog);
 
   return (
     <aside className="summary">
@@ -126,6 +128,7 @@ export function AdvisePanel({ plan, onChange, onGenerate }: Props) {
       <div className="summary-block">
         <h3>{t('advise.hintTitle')}</h3>
         <p className="muted">{t('advise.hint')}</p>
+        <p className="muted">{t('advise.addHint')}</p>
       </div>
 
       <div className="summary-block">

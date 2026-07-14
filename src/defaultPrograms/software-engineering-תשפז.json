@@ -51,17 +51,6 @@
       "prerequisites": []
     },
     {
-      "id": "299-1-1121",
-      "code": "299-1-1121",
-      "name": "הדרכה בספריה",
-      "credits": 0,
-      "type": "general",
-      "category": "נוספים",
-      "year": 1,
-      "semester": "A",
-      "prerequisites": []
-    },
-    {
       "id": "153-1-5041",
       "code": "153-1-5041",
       "name": "אנגלית מתקדמים א'",
@@ -72,17 +61,6 @@
       "semester": "A",
       "prerequisites": [],
       "description": ""
-    },
-    {
-      "id": "900-1-5001",
-      "code": "900-1-5001",
-      "name": "לומדה להכרת החוק למניעת הטרדה מינית",
-      "credits": 0,
-      "type": "general",
-      "category": "נוספים",
-      "year": 1,
-      "semester": "A",
-      "prerequisites": []
     },
     {
       "id": "212-1-2361",
@@ -605,5 +583,6 @@
       "choose": 1
     }
   ],
-  "electiveGroups": []
+  "electiveGroups": [],
+  "id": "הנדסת_תוכנה_-_שנתון_תשפז"
 }
