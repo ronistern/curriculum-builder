@@ -12,22 +12,25 @@ import type { Updater } from './util';
  * swaps (open / import / new / close) clear both stacks — undo never crosses a
  * document boundary.
  */
-interface History<T> {
+export interface History<T> {
   past: T[];
   present: T;
   future: T[];
 }
 
-type HistoryAction<T> =
+export type HistoryAction<T> =
   | { type: 'set'; updater: Updater<T> }
   | { type: 'undo' }
   | { type: 'redo' }
   | { type: 'reset'; value: T };
 
 /** Cap the undo depth so a long editing session can't grow memory unbounded. */
-const HISTORY_LIMIT = 100;
+export const HISTORY_LIMIT = 100;
 
-function historyReducer<T>(state: History<T>, action: HistoryAction<T>): History<T> {
+export function historyReducer<T>(
+  state: History<T>,
+  action: HistoryAction<T>,
+): History<T> {
   switch (action.type) {
     case 'set': {
       const next =

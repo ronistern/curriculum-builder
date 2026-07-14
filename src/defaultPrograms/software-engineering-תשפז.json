@@ -404,16 +404,17 @@
     {
       "id": "237-1-3503",
       "code": "237-1-3503",
-      "name": "מבוא לבינה מלאכותית להנדסת תוכנה",
+      "name": "מבוא לבינה מלאכותית",
       "credits": 3.5,
       "type": "mandatory",
       "category": "אלגוריתמיקה",
-      "year": 4,
+      "year": 3,
       "semester": "A",
       "prerequisites": [
         "232-1-2031",
         "232-1-2011"
-      ]
+      ],
+      "description": ""
     },
     {
       "id": "237-1-3071",
@@ -464,7 +465,7 @@
       "credits": 4,
       "type": "mandatory",
       "category": "",
-      "year": 4,
+      "year": 3,
       "semester": "B",
       "prerequisites": [
         "237-1-3503"
@@ -510,8 +511,8 @@
       "credits": 5,
       "type": "general",
       "category": "",
-      "year": 3,
-      "semester": "B",
+      "year": 4,
+      "semester": "A",
       "prerequisites": [],
       "description": ""
     },
@@ -522,7 +523,7 @@
       "credits": 4,
       "type": "elective",
       "category": "",
-      "year": 3,
+      "year": 4,
       "semester": "A",
       "prerequisites": [],
       "description": ""
@@ -534,7 +535,7 @@
       "credits": 3,
       "type": "elective",
       "category": "",
-      "year": 3,
+      "year": 4,
       "semester": "B",
       "prerequisites": [],
       "description": ""
@@ -584,5 +585,5 @@
     }
   ],
   "electiveGroups": [],
-  "id": "הנדסת_תוכנה_-_שנתון_תשפז"
+  "id": "software-engineering-תשפז"
 }

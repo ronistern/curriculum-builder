@@ -12,7 +12,6 @@ import {
 } from './studentPlan';
 import { allCatalogs } from './catalogLibrary';
 import { downloadProgram, readProgramFile } from './fileStore';
-import { downloadProgramAsWord } from './wordExport';
 import { emptyProgram } from './sampleData';
 import { CurriculumGrid } from './components/CurriculumGrid';
 import { SummaryPanel } from './components/SummaryPanel';
@@ -96,7 +95,7 @@ type EditorState =
   | { mode: 'add'; seed: Partial<Course> };
 
 export default function App() {
-  const { t, dir } = useI18n();
+  const { t } = useI18n();
   const {
     program,
     setProgram,
@@ -129,6 +128,16 @@ export default function App() {
   const advising = plan.plan !== null;
   const editable = !advising;
 
+  // A blocking dialog owns its own draft state; a background undo/redo behind it
+  // would be invisible and surprising, so the shortcut is muted while one is open.
+  const modalOpen =
+    editor.mode !== 'closed' ||
+    showSettings ||
+    showOpen ||
+    compareWith !== null ||
+    showPlanDiff ||
+    picker !== null;
+
   // Ctrl/Cmd+Z to undo, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y to redo, routed to the
   // active document (plan while advising, otherwise the curriculum). Ignored
   // while typing in a field so the browser's native text undo still works.
@@ -136,7 +145,7 @@ export default function App() {
   const planRedo = plan.redo;
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return;
+      if (modalOpen || !(e.ctrlKey || e.metaKey)) return;
       const key = e.key.toLowerCase();
       const isUndo = key === 'z' && !e.shiftKey;
       const isRedo = (key === 'z' && e.shiftKey) || key === 'y';
@@ -150,7 +159,7 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [advising, undo, redo, planUndo, planRedo]);
+  }, [modalOpen, advising, undo, redo, planUndo, planRedo]);
 
   /** Drop bundles that no longer have any member courses. */
   const pruneBundles = (bundles: Bundle[], courses: Course[]): Bundle[] =>
@@ -377,12 +386,6 @@ export default function App() {
         <div className="toolbar">
           {advising ? (
             <>
-              <UndoRedo
-                canUndo={plan.canUndo}
-                canRedo={plan.canRedo}
-                onUndo={plan.undo}
-                onRedo={plan.redo}
-              />
               {canUseFiles ? (
                 <SaveButtons
                   dirty={plan.dirty}
@@ -413,18 +416,18 @@ export default function App() {
                 {t('advise.back')}
               </button>
               <LanguageSwitcher />
+              <UndoRedo
+                canUndo={plan.canUndo}
+                canRedo={plan.canRedo}
+                onUndo={plan.undo}
+                onRedo={plan.redo}
+              />
               <HiddenFileInput ref={planInput} onFile={handleImportPlan} />
             </>
           ) : (
             <>
               {editable && (
                 <>
-                  <UndoRedo
-                    canUndo={canUndo}
-                    canRedo={canRedo}
-                    onUndo={undo}
-                    onRedo={redo}
-                  />
                   <button onClick={() => setShowSettings(true)}>
                     {t('app.program')}
                   </button>
@@ -442,9 +445,6 @@ export default function App() {
                       {t('app.export')}
                     </button>
                   )}
-                  <button onClick={() => downloadProgramAsWord(program, t, dir)}>
-                    {t('app.exportWord')}
-                  </button>
                   <button onClick={() => compareInput.current?.click()}>
                     {t('app.compare')}
                   </button>
@@ -464,6 +464,14 @@ export default function App() {
                 </>
               )}
               <LanguageSwitcher />
+              {editable && (
+                <UndoRedo
+                  canUndo={canUndo}
+                  canRedo={canRedo}
+                  onUndo={undo}
+                  onRedo={redo}
+                />
+              )}
             </>
           )}
         </div>
