@@ -52,6 +52,14 @@ export interface ProgramStore {
   dirty: boolean;
   /** Whether this browser can read/write files in place. */
   canUseFiles: boolean;
+  /** Revert the last curriculum edit. */
+  undo: () => void;
+  /** Re-apply the last undone curriculum edit. */
+  redo: () => void;
+  /** Whether there is an edit to undo. */
+  canUndo: boolean;
+  /** Whether there is an undone edit to redo. */
+  canRedo: boolean;
   /** Open a curriculum file, replacing the current working copy. */
   open: () => Promise<void>;
   /** Write to the bound file, falling back to Save As when there is none. */
@@ -84,6 +92,10 @@ export function useProgram(): ProgramStore {
     fileName: store.fileName,
     dirty: store.dirty,
     canUseFiles: store.canUseFiles,
+    undo: store.undo,
+    redo: store.redo,
+    canUndo: store.canUndo,
+    canRedo: store.canRedo,
     open: store.open,
     save: store.save,
     saveAs: store.saveAs,

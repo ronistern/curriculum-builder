@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Bundle, Course, Program, Semester } from './types';
 import { useProgram } from './storage';
 import { useStudentPlan } from './studentPlanStore';
@@ -6,6 +6,7 @@ import {
   advisedProgram,
   generatePlan,
   planCourses,
+  planVsProgram,
   type CourseStatus,
   type TermSlot,
 } from './studentPlan';
@@ -64,6 +65,31 @@ function SaveButtons({
   );
 }
 
+/** Undo / Redo button pair, shared by the curriculum and plan toolbars. */
+function UndoRedo({
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+}: {
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <>
+      <button onClick={onUndo} disabled={!canUndo} title={t('app.undo')}>
+        ↶ {t('app.undo')}
+      </button>
+      <button onClick={onRedo} disabled={!canRedo} title={t('app.redo')}>
+        ↷ {t('app.redo')}
+      </button>
+    </>
+  );
+}
+
 type EditorState =
   | { mode: 'closed' }
   | { mode: 'edit'; course: Course }
@@ -77,6 +103,10 @@ export default function App() {
     fileName,
     dirty,
     canUseFiles,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
     open,
     save,
     saveAs,
@@ -87,6 +117,8 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showOpen, setShowOpen] = useState(false);
   const [compareWith, setCompareWith] = useState<Program | null>(null);
+  // Advise mode: show the plan-vs-recommended-program changes dialog.
+  const [showPlanDiff, setShowPlanDiff] = useState(false);
   // Advise mode: the cell a course is being added into (null = picker closed).
   const [picker, setPicker] = useState<TermSlot | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -96,6 +128,29 @@ export default function App() {
 
   const advising = plan.plan !== null;
   const editable = !advising;
+
+  // Ctrl/Cmd+Z to undo, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y to redo, routed to the
+  // active document (plan while advising, otherwise the curriculum). Ignored
+  // while typing in a field so the browser's native text undo still works.
+  const planUndo = plan.undo;
+  const planRedo = plan.redo;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const key = e.key.toLowerCase();
+      const isUndo = key === 'z' && !e.shiftKey;
+      const isRedo = (key === 'z' && e.shiftKey) || key === 'y';
+      if (!isUndo && !isRedo) return;
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || el.closest('input, textarea, select')))
+        return;
+      e.preventDefault();
+      if (advising) (isUndo ? planUndo : planRedo)();
+      else (isUndo ? undo : redo)();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [advising, undo, redo, planUndo, planRedo]);
 
   /** Drop bundles that no longer have any member courses. */
   const pruneBundles = (bundles: Bundle[], courses: Course[]): Bundle[] =>
@@ -322,6 +377,12 @@ export default function App() {
         <div className="toolbar">
           {advising ? (
             <>
+              <UndoRedo
+                canUndo={plan.canUndo}
+                canRedo={plan.canRedo}
+                onUndo={plan.undo}
+                onRedo={plan.redo}
+              />
               {canUseFiles ? (
                 <SaveButtons
                   dirty={plan.dirty}
@@ -338,6 +399,11 @@ export default function App() {
               >
                 {t('advise.openPlan')}
               </button>
+              {catalog && (
+                <button onClick={() => setShowPlanDiff(true)}>
+                  {t('planDiff.button')}
+                </button>
+              )}
               <button
                 className="danger-ghost"
                 onClick={() => {
@@ -353,6 +419,12 @@ export default function App() {
             <>
               {editable && (
                 <>
+                  <UndoRedo
+                    canUndo={canUndo}
+                    canRedo={canRedo}
+                    onUndo={undo}
+                    onRedo={redo}
+                  />
                   <button onClick={() => setShowSettings(true)}>
                     {t('app.program')}
                   </button>
@@ -485,6 +557,25 @@ export default function App() {
           onClose={() => setCompareWith(null)}
         />
       )}
+      {showPlanDiff &&
+        plan.plan &&
+        catalog &&
+        (() => {
+          const { recommended, planned } = planVsProgram(plan.plan, catalog);
+          return (
+            <DiffView
+              base={recommended}
+              other={planned}
+              title={t('planDiff.title')}
+              subtitle={t('planDiff.against', {
+                program: catalog.name,
+                student: plan.plan.student.name || t('advise.untitledStudent'),
+              })}
+              identicalText={t('planDiff.identical')}
+              onClose={() => setShowPlanDiff(false)}
+            />
+          );
+        })()}
       {picker && (
         <CoursePicker
           groups={pickerGroups}

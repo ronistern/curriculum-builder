@@ -398,3 +398,39 @@ export function advisedProgram(plan: StudentPlan, catalog: Program): Program {
   );
   return { ...program, years, courses };
 }
+
+/* ----------------------------------------------------------------------------
+ * Plan vs. recommended program
+ * ------------------------------------------------------------------------- */
+
+/** Ids of courses the student has already completed. */
+function completedIds(plan: StudentPlan): Set<string> {
+  return new Set(
+    Object.entries(plan.status)
+      .filter(([, s]) => s === 'completed')
+      .map(([id]) => id),
+  );
+}
+
+/**
+ * The recommended program and the student's plan as two program-shaped values
+ * ready for {@link ../diff.diffPrograms}. `recommended` is the untouched
+ * catalog; `planned` is the advised projection — excluded courses dropped,
+ * extras added, and every remaining course at its scheduled / manually-placed
+ * slot. Courses the student has already completed are removed from BOTH sides,
+ * so a finished course never surfaces as a change.
+ */
+export function planVsProgram(
+  plan: StudentPlan,
+  catalog: Program,
+): { recommended: Program; planned: Program } {
+  const done = completedIds(plan);
+  const drop = (p: Program): Program => ({
+    ...p,
+    courses: p.courses.filter((c) => !done.has(c.id)),
+  });
+  return {
+    recommended: drop(catalog),
+    planned: drop(advisedProgram(plan, catalog)),
+  };
+}

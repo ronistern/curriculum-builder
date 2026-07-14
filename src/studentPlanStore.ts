@@ -61,6 +61,14 @@ export interface StudentPlanStore {
   fileName: string | null;
   dirty: boolean;
   canUseFiles: boolean;
+  /** Revert the last edit to the plan. */
+  undo: () => void;
+  /** Re-apply the last undone edit to the plan. */
+  redo: () => void;
+  /** Whether there is an edit to undo. */
+  canUndo: boolean;
+  /** Whether there is an undone edit to redo. */
+  canRedo: boolean;
   /** Begin a fresh plan against a catalog (enters advise mode). */
   start: (catalog: Program) => void;
   /** Open an existing `.plan.json`. */
@@ -123,6 +131,10 @@ export function useStudentPlan(): StudentPlanStore {
     fileName: store.fileName,
     dirty: store.dirty,
     canUseFiles: store.canUseFiles,
+    undo: store.undo,
+    redo: store.redo,
+    canUndo: store.canUndo,
+    canRedo: store.canRedo,
     start: (catalog) => {
       upsertCatalog(catalog);
       setProvided(catalog);

@@ -1,10 +1,66 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import {
   ensurePermission,
   fileAccessSupported,
   type FileHandleLike,
 } from './fileStore';
 import type { Updater } from './util';
+
+/**
+ * Undo/redo history for the document. `present` is the live value; `past` and
+ * `future` are the states you step back and forward through. Wholesale document
+ * swaps (open / import / new / close) clear both stacks — undo never crosses a
+ * document boundary.
+ */
+interface History<T> {
+  past: T[];
+  present: T;
+  future: T[];
+}
+
+type HistoryAction<T> =
+  | { type: 'set'; updater: Updater<T> }
+  | { type: 'undo' }
+  | { type: 'redo' }
+  | { type: 'reset'; value: T };
+
+/** Cap the undo depth so a long editing session can't grow memory unbounded. */
+const HISTORY_LIMIT = 100;
+
+function historyReducer<T>(state: History<T>, action: HistoryAction<T>): History<T> {
+  switch (action.type) {
+    case 'set': {
+      const next =
+        typeof action.updater === 'function'
+          ? state.present == null
+            ? state.present
+            : (action.updater as (p: T) => T)(state.present)
+          : action.updater;
+      if (Object.is(next, state.present)) return state;
+      const past = [...state.past, state.present];
+      return {
+        past: past.length > HISTORY_LIMIT ? past.slice(-HISTORY_LIMIT) : past,
+        present: next,
+        future: [],
+      };
+    }
+    case 'undo': {
+      if (state.past.length === 0) return state;
+      return {
+        past: state.past.slice(0, -1),
+        present: state.past[state.past.length - 1],
+        future: [state.present, ...state.future],
+      };
+    }
+    case 'redo': {
+      if (state.future.length === 0) return state;
+      const [present, ...future] = state.future;
+      return { past: [...state.past, state.present], present, future };
+    }
+    case 'reset':
+      return { past: [], present: action.value, future: [] };
+  }
+}
 
 /**
  * The behaviours that distinguish one file-backed document from another. Every
@@ -34,6 +90,14 @@ export interface FileBackedDoc<T> {
   fileName: string | null;
   dirty: boolean;
   canUseFiles: boolean;
+  /** Step back to the document state before the last edit. No-op when empty. */
+  undo: () => void;
+  /** Re-apply the last undone edit. No-op when there is nothing to redo. */
+  redo: () => void;
+  /** Whether there is a prior state to undo to. */
+  canUndo: boolean;
+  /** Whether there is an undone state to redo. */
+  canRedo: boolean;
   open: () => Promise<void>;
   save: () => Promise<void>;
   saveAs: () => Promise<void>;
@@ -61,7 +125,14 @@ export function useFileBackedDoc<T>(config: FileBackedConfig<T>): FileBackedDoc<
     cfg.current = config;
   });
 
-  const [doc, setDocState] = useState<T>(config.load);
+  const [history, dispatch] = useReducer(
+    historyReducer<T>,
+    config.load,
+    (load) => ({ past: [], present: load(), future: [] }),
+  );
+  const doc = history.present;
+  const canUndo = history.past.length > 0;
+  const canRedo = history.future.length > 0;
   const [handle, setHandle] = useState<FileHandleLike | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -92,15 +163,21 @@ export function useFileBackedDoc<T>(config: FileBackedConfig<T>): FileBackedDoc<
   }, [doc]);
 
   const setDoc = useCallback((updater: Updater<T>) => {
-    setDocState((prev) =>
-      typeof updater === 'function'
-        ? prev == null
-          ? prev
-          : (updater as (p: T) => T)(prev)
-        : updater,
-    );
+    dispatch({ type: 'set', updater });
     setDirty(true);
   }, []);
+
+  const undo = useCallback(() => {
+    if (!canUndo) return;
+    dispatch({ type: 'undo' });
+    setDirty(true);
+  }, [canUndo]);
+
+  const redo = useCallback(() => {
+    if (!canRedo) return;
+    dispatch({ type: 'redo' });
+    setDirty(true);
+  }, [canRedo]);
 
   const bind = useCallback((h: FileHandleLike) => {
     setHandle(h);
@@ -128,13 +205,13 @@ export function useFileBackedDoc<T>(config: FileBackedConfig<T>): FileBackedDoc<
   const open = useCallback(async () => {
     const result = await cfg.current.pickOpen();
     if (!result) return;
-    setDocState(result.value);
+    dispatch({ type: 'reset', value: result.value });
     bind(result.handle);
   }, [bind]);
 
   const replace = useCallback(
     (value: T, opts: { dirty: boolean; fileName?: string | null }) => {
-      setDocState(value);
+      dispatch({ type: 'reset', value });
       setHandle(null);
       setFileName(opts.fileName ?? null);
       setDirty(opts.dirty);
@@ -143,5 +220,19 @@ export function useFileBackedDoc<T>(config: FileBackedConfig<T>): FileBackedDoc<
     [],
   );
 
-  return { doc, setDoc, fileName, dirty, canUseFiles, open, save, saveAs, replace };
+  return {
+    doc,
+    setDoc,
+    fileName,
+    dirty,
+    canUseFiles,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    open,
+    save,
+    saveAs,
+    replace,
+  };
 }

@@ -17,6 +17,12 @@ interface Props {
   base: Program;
   /** Right side — the curriculum currently open. */
   other: Program;
+  /** Heading; defaults to the curriculum-vs-curriculum title. */
+  title?: string;
+  /** Sub-heading under the title; defaults to "{base} → {other}". */
+  subtitle?: string;
+  /** Message shown when nothing differs; defaults to the generic one. */
+  identicalText?: string;
   onClose: () => void;
 }
 
@@ -41,10 +47,22 @@ const PROGRAM_FIELD_LABEL: Record<ProgramField, TKey> = {
   showSummer: 'settings.showSummer',
 };
 
-export function DiffView({ base, other, onClose }: Props) {
+export function DiffView({
+  base,
+  other,
+  title,
+  subtitle,
+  identicalText,
+  onClose,
+}: Props) {
   const { t, dir } = useI18n();
   const diff = diffPrograms(base, other);
   const [copied, setCopied] = useState(false);
+
+  const titleText = title ?? t('diff.title');
+  const subtitleText =
+    subtitle ?? t('diff.against', { base: base.name, other: other.name });
+  const identicalMsg = identicalText ?? t('diff.identical');
 
   // Render a single course value, translating enum-typed fields. Empty values
   // (e.g. an added description) show an em dash.
@@ -90,15 +108,15 @@ export function DiffView({ base, other, onClose }: Props) {
 
   const buildHtml = () => {
     const p: string[] = [];
-    p.push(`<h2 style="margin:0 0 4px;font-size:18px;">${esc(t('diff.title'))}</h2>`);
+    p.push(`<h2 style="margin:0 0 4px;font-size:18px;">${esc(titleText)}</h2>`);
     p.push(
       `<div style="color:${MUTED};font-size:13px;margin-bottom:10px;">${esc(
-        t('diff.against', { base: base.name, other: other.name }),
+        subtitleText,
       )}</div>`,
     );
 
     if (!diff.hasChanges) {
-      p.push(`<p>${esc(t('diff.identical'))}</p>`);
+      p.push(`<p>${esc(identicalMsg)}</p>`);
     } else {
       p.push(
         `<div style="font-size:13px;margin-bottom:6px;">${summaryBits()
@@ -167,9 +185,9 @@ export function DiffView({ base, other, onClose }: Props) {
   };
 
   const buildText = () => {
-    const lines: string[] = [t('diff.title'), t('diff.against', { base: base.name, other: other.name })];
+    const lines: string[] = [titleText, subtitleText];
     if (!diff.hasChanges) {
-      lines.push('', t('diff.identical'));
+      lines.push('', identicalMsg);
       return lines.join('\n');
     }
     lines.push('', summaryBits().join(' · '));
@@ -231,13 +249,11 @@ export function DiffView({ base, other, onClose }: Props) {
 
   return (
     <Modal onClose={onClose} className="modal-wide">
-        <h2>{t('diff.title')}</h2>
-        <div className="diff-subtitle">
-          {t('diff.against', { base: base.name, other: other.name })}
-        </div>
+        <h2>{titleText}</h2>
+        <div className="diff-subtitle">{subtitleText}</div>
 
         {!diff.hasChanges ? (
-          <p className="ok">{t('diff.identical')}</p>
+          <p className="ok">{identicalMsg}</p>
         ) : (
           <>
             <div className="diff-summary">

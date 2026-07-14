@@ -29,6 +29,8 @@ const en = {
     new: 'New',
     compare: 'Compare…',
     compareError: 'Could not read file to compare: ',
+    undo: 'Undo',
+    redo: 'Redo',
     untitled: 'Untitled',
     unsaved: 'Unsaved changes',
     confirmNew: 'Clear all courses and start a blank program?',
@@ -164,6 +166,12 @@ const en = {
     close: 'Close',
     empty: '—',
   },
+  planDiff: {
+    button: 'Changes from program',
+    title: 'Changes from the recommended program',
+    against: '{program} → {student}',
+    identical: 'This plan follows the recommended program exactly.',
+  },
   advise: {
     planForStudent: 'Plan for student…',
     openPlan: 'Open student plan…',
@@ -222,6 +230,8 @@ const he: Dict = {
     new: 'חדש',
     compare: 'השוואה…',
     compareError: 'לא ניתן לקרוא את הקובץ להשוואה: ',
+    undo: 'ביטול',
+    redo: 'ביצוע מחדש',
     untitled: 'ללא שם',
     unsaved: 'שינויים שלא נשמרו',
     confirmNew: 'לנקות את כל הקורסים ולהתחיל תוכנית ריקה?',
@@ -356,6 +366,12 @@ const he: Dict = {
     copyError: 'לא ניתן להעתיק ללוח.',
     close: 'סגירה',
     empty: '—',
+  },
+  planDiff: {
+    button: 'שינויים מהתוכנית',
+    title: 'שינויים מהתוכנית המומלצת',
+    against: '{program} ← {student}',
+    identical: 'התכנית תואמת במדויק את התוכנית המומלצת.',
   },
   advise: {
     planForStudent: 'תכנון לסטודנט…',
