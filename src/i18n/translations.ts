@@ -185,26 +185,15 @@ const en = {
     creditsEarned: 'credits earned',
     creditsInProgress: 'In progress',
     creditsPlanned: 'Still to plan',
-    settings: 'Planning settings',
-    currentYear: 'Current year',
-    currentSemester: 'Current semester',
-    maxCredits: 'Max credits / semester',
-    generate: 'Generate plan',
     catalogMissing:
       'The catalog for this plan (“{name}”) isn’t available. Open its file to continue.',
     openCatalog: 'Open catalog file…',
     hintTitle: 'How to mark courses',
     hint: 'Click a course to cycle: to plan → completed ✓ → in progress ⋯ → to plan. Use × to remove a course.',
     addHint: 'Click “+ Add course” in any semester to add a course from the catalog.',
-    unschedulableTitle: 'Could not schedule',
-    allScheduled: '✓ Every remaining course was placed.',
     status: {
       completed: 'Completed',
       'in-progress': 'In progress',
-    },
-    unschedulable: {
-      prereqs: '{course}: prerequisites are not satisfied in time.',
-      capacity: '{course}: no term has room under the credit cap.',
     },
   },
   picker: {
@@ -385,26 +374,15 @@ const he: Dict = {
     creditsEarned: 'נקודות זכות שהושלמו',
     creditsInProgress: 'בתהליך',
     creditsPlanned: 'נותר לתכנן',
-    settings: 'הגדרות תכנון',
-    currentYear: 'שנה נוכחית',
-    currentSemester: 'סמסטר נוכחי',
-    maxCredits: 'מקסימום נ"ז לסמסטר',
-    generate: 'יצירת תכנית',
     catalogMissing:
       'הקטלוג של תכנית זו ("{name}") אינו זמין. יש לפתוח את הקובץ שלו כדי להמשיך.',
     openCatalog: 'פתיחת קובץ קטלוג…',
     hintTitle: 'סימון קורסים',
     hint: 'לחיצה על קורס מחליפה מצב: לתכנון ← הושלם ✓ ← בתהליך ⋯ ← לתכנון. לחיצה על × מסירה קורס.',
     addHint: 'לחיצה על "+ הוספת קורס" בכל סמסטר מוסיפה קורס מהקטלוג.',
-    unschedulableTitle: 'לא ניתן לשבץ',
-    allScheduled: '✓ כל הקורסים שנותרו שובצו.',
     status: {
       completed: 'הושלם',
       'in-progress': 'בתהליך',
-    },
-    unschedulable: {
-      prereqs: '{course}: דרישות הקדם אינן מתקיימות בזמן.',
-      capacity: '{course}: אין סמסטר עם מקום מתחת למגבלת הנ"ז.',
     },
   },
   picker: {
