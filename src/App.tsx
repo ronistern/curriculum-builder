@@ -1,16 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Bundle, Course, Program, Semester } from './types';
 import { useProgram } from './storage';
 import { useStudentPlan } from './studentPlanStore';
-import {
-  advisedProgram,
-  generatePlan,
-  planCourses,
-  planVsProgram,
-  type CourseStatus,
-  type TermSlot,
-} from './studentPlan';
-import { allCatalogs } from './catalogLibrary';
+import { planVsProgram, type TermSlot } from './studentPlan';
+import { usePlanAdvisor } from './usePlanAdvisor';
 import { downloadProgram, readProgramFile } from './fileStore';
 import { emptyProgram } from './sampleData';
 import { CurriculumGrid } from './components/CurriculumGrid';
@@ -23,71 +16,10 @@ import { DiffView } from './components/DiffView';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { HiddenFileInput } from './components/HiddenFileInput';
 import { OpenProgramDialog } from './components/OpenProgramDialog';
+import { FileStatus, SaveButtons, UndoRedo } from './components/Toolbar';
 import { useI18n } from './i18n/useI18n';
 import type { TKey } from './i18n/useI18n';
 import './App.css';
-
-/** File name + unsaved indicator shown under the title. */
-function FileStatus({ name, dirty }: { name: string | null; dirty: boolean }) {
-  const { t } = useI18n();
-  return (
-    <div className="file-status">
-      {name ?? t('app.untitled')}
-      {dirty && (
-        <span className="unsaved" title={t('app.unsaved')}>
-          {' •'}
-        </span>
-      )}
-    </div>
-  );
-}
-
-/** The Save / Save As button pair, shared by curriculum and plan toolbars. */
-function SaveButtons({
-  dirty,
-  onSave,
-  onSaveAs,
-}: {
-  dirty: boolean;
-  onSave: () => void;
-  onSaveAs: () => void;
-}) {
-  const { t } = useI18n();
-  return (
-    <>
-      <button onClick={onSave}>
-        {t('app.save')}
-        {dirty ? ' •' : ''}
-      </button>
-      <button onClick={onSaveAs}>{t('app.saveAs')}</button>
-    </>
-  );
-}
-
-/** Undo / Redo button pair, shared by the curriculum and plan toolbars. */
-function UndoRedo({
-  canUndo,
-  canRedo,
-  onUndo,
-  onRedo,
-}: {
-  canUndo: boolean;
-  canRedo: boolean;
-  onUndo: () => void;
-  onRedo: () => void;
-}) {
-  const { t } = useI18n();
-  return (
-    <>
-      <button onClick={onUndo} disabled={!canUndo} title={t('app.undo')}>
-        ↶ {t('app.undo')}
-      </button>
-      <button onClick={onRedo} disabled={!canRedo} title={t('app.redo')}>
-        ↷ {t('app.redo')}
-      </button>
-    </>
-  );
-}
 
 type EditorState =
   | { mode: 'closed' }
@@ -112,6 +44,7 @@ export default function App() {
     reset,
   } = useProgram();
   const plan = useStudentPlan();
+  const advisor = usePlanAdvisor(plan);
   const [editor, setEditor] = useState<EditorState>({ mode: 'closed' });
   const [showSettings, setShowSettings] = useState(false);
   const [showOpen, setShowOpen] = useState(false);
@@ -127,6 +60,7 @@ export default function App() {
 
   const advising = plan.plan !== null;
   const editable = !advising;
+  const catalog = plan.catalog;
 
   // A blocking dialog owns its own draft state; a background undo/redo behind it
   // would be invisible and surprising, so the shortcut is muted while one is open.
@@ -200,13 +134,18 @@ export default function App() {
     try {
       await fn();
     } catch (err) {
-      alert(t(errKey) + (err as Error).message);
+      alert(t(errKey) + (err instanceof Error ? err.message : String(err)));
     }
   };
 
+  // Opening a file is a wholesale document swap, so it goes through `reset`
+  // (clearing undo history + detaching any handle) rather than `setProgram`,
+  // which would leave the swap on the undo stack. This is the fallback path for
+  // browsers without the File System Access API; `canUseFiles` browsers use the
+  // native `open` above, which resets similarly.
   const handleImport = (file: File | undefined) =>
     file &&
-    runOrAlert(async () => setProgram(await readProgramFile(file)), 'app.importError');
+    runOrAlert(async () => reset(await readProgramFile(file)), 'app.importError');
 
   const handleCompare = (file: File | undefined) =>
     file &&
@@ -240,115 +179,14 @@ export default function App() {
   const onSavePlan = (mode: 'save' | 'saveAs') =>
     runOrAlert(mode === 'saveAs' ? plan.saveAs : plan.save, 'app.saveError');
 
-  // Cycle a course's plan status: to-plan → completed → in-progress → to-plan.
-  const cycleStatus = (id: string) =>
-    plan.setPlan((p) => {
-      const next: Record<string, CourseStatus> = { ...p.status };
-      const cur = next[id];
-      if (!cur) next[id] = 'completed';
-      else if (cur === 'completed') next[id] = 'in-progress';
-      else delete next[id];
-      return { ...p, status: next };
-    });
-
-  const catalog = plan.catalog;
-
-  // Remove a course from this student's plan (also clearing any status / slot /
-  // manual placement). A base catalog course goes onto `excluded`; an added
-  // course is dropped from `extraCourses`. Either way it's re-addable via the
-  // grid's per-cell "+".
-  const removeCourse = (id: string) =>
-    plan.setPlan((p) => {
-      const status = { ...p.status };
-      const schedule = { ...p.schedule };
-      const placements = { ...p.placements };
-      delete status[id];
-      delete schedule[id];
-      delete placements[id];
-      const isBase = !!catalog?.courses.some((c) => c.id === id);
-      return {
-        ...p,
-        status,
-        schedule,
-        placements,
-        excluded:
-          isBase && !p.excluded.includes(id) ? [...p.excluded, id] : p.excluded,
-        extraCourses: isBase
-          ? p.extraCourses
-          : p.extraCourses.filter((c) => c.id !== id),
-      };
-    });
-
-  // Add a catalog course into a specific cell (year+semester). A base course is
-  // un-excluded and pinned there; a course from another program is snapshotted
-  // into `extraCourses`. Either way its placement overrides the auto-scheduler.
-  const addCourseAt = (course: Course, slot: TermSlot) => {
-    plan.setPlan((p) => {
-      const isBase = !!catalog?.courses.some((c) => c.id === course.id);
-      const placements = { ...p.placements, [course.id]: slot };
-      return isBase
-        ? { ...p, placements, excluded: p.excluded.filter((x) => x !== course.id) }
-        : {
-            ...p,
-            placements,
-            extraCourses: p.extraCourses.some((c) => c.id === course.id)
-              ? p.extraCourses
-              : [...p.extraCourses, course],
-          };
-    });
-    setPicker(null);
-  };
-
-  const generate = () =>
-    catalog &&
-    plan.setPlan((p) => ({ ...p, schedule: generatePlan(p, catalog).schedule }));
-
-  // Courses selectable in the per-cell picker: every course across all catalogs
-  // in the library (deduped by id). Courses already in this plan are included
-  // too — picking one re-places it into the chosen cell — and flagged via
-  // `pickerInPlan` so the picker can mark them.
-  const pickerInPlan = useMemo(
-    () =>
-      plan.plan && catalog
-        ? new Set(planCourses(catalog, plan.plan).map((c) => c.id))
-        : new Set<string>(),
-    [plan.plan, catalog],
-  );
-  const pickerGroups = useMemo(() => {
-    if (!plan.plan || !catalog) return [];
-    const seen = new Set<string>();
-    return allCatalogs()
-      .map((prog) => ({
-        program: `${prog.degree} ${prog.name}`.trim(),
-        courses: prog.courses.filter((c) => {
-          if (seen.has(c.id)) return false;
-          seen.add(c.id);
-          return true;
-        }),
-      }))
-      .filter((g) => g.courses.length > 0);
-  }, [plan.plan, catalog]);
-
   // Resolve the referenced catalog from an opened file when it isn't in the
-  // library (e.g. a plan saved on another device), adopting its id.
+  // library (e.g. a plan saved on another device).
   const handleProvideCatalog = (file: File | undefined) =>
     file &&
-    runOrAlert(async () => {
-      const opened = await readProgramFile(file);
-      plan.provideCatalog(opened);
-      plan.setPlan((p) => ({
-        ...p,
-        catalogId: opened.id,
-        catalogName: opened.name,
-      }));
-    }, 'advise.openError');
-
-  // The schedule grid places to-plan courses (scheduled) + in-progress courses
-  // (at the current term); completed courses are listed in the AdvisePanel.
-  const advised = useMemo(
-    () => (plan.plan && catalog ? advisedProgram(plan.plan, catalog) : null),
-    [plan.plan, catalog],
-  );
+    runOrAlert(
+      async () => advisor.adoptCatalog(await readProgramFile(file)),
+      'advise.openError',
+    );
 
   return (
     <div className={`app${advising ? ' advise-mode' : ''}`}>
@@ -480,14 +318,14 @@ export default function App() {
       <div className="body">
         <main className="canvas">
           {advising && plan.plan ? (
-            advised && catalog ? (
+            advisor.advised && catalog ? (
               <CurriculumGrid
-                program={advised}
+                program={advisor.advised}
                 editable={false}
                 advise
                 statusOf={(id) => plan.plan!.status[id]}
-                onCycleStatus={cycleStatus}
-                onRemove={removeCourse}
+                onCycleStatus={advisor.cycleStatus}
+                onRemove={advisor.removeCourse}
                 onAddAt={(year, semester) => setPicker({ year, semester })}
               />
             ) : (
@@ -519,7 +357,7 @@ export default function App() {
               plan={plan.plan}
               catalog={catalog}
               onChange={plan.setPlan}
-              onGenerate={generate}
+              onGenerate={advisor.generate}
             />
           )
         ) : (
@@ -586,12 +424,15 @@ export default function App() {
         })()}
       {picker && (
         <CoursePicker
-          groups={pickerGroups}
-          inPlan={pickerInPlan}
+          groups={advisor.pickerGroups}
+          inPlan={advisor.pickerInPlan}
           target={`${t('grid.year', { n: picker.year })} · ${t(
             `semester.${picker.semester}`,
           )}`}
-          onSelect={(course) => addCourseAt(course, picker)}
+          onSelect={(course) => {
+            advisor.addCourseAt(course, picker);
+            setPicker(null);
+          }}
           onClose={() => setPicker(null)}
         />
       )}
