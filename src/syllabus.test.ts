@@ -35,4 +35,9 @@ describe('syllabusUrl', () => {
     expect(syllabusUrl(course('CS101'))).toBeNull();
     expect(syllabusUrl(course(''))).toBeNull();
   });
+
+  it('returns null (no throw) for a missing code', () => {
+    const noCode = { ...course('x'), code: undefined as unknown as string };
+    expect(syllabusUrl(noCode)).toBeNull();
+  });
 });

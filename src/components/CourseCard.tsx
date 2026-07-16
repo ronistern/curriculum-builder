@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Course } from '../types';
 import type { CourseStatus } from '../studentPlan';
-import { syllabusUrl } from '../syllabus';
+import { SyllabusLink } from './SyllabusLink';
 import { useI18n } from '../i18n/useI18n';
 
 /** Delay before a single click acts, so a double-click can cancel it. */
@@ -48,8 +48,6 @@ export function CourseCard({
   onRemove,
 }: Props) {
   const { t } = useI18n();
-  // Deep-link to the official BGU catalog page, when the code is a BGU number.
-  const syllabus = syllabusUrl(course);
   // When the card is editable a double-click opens the editor, so a single
   // click is deferred briefly and cancelled if a double-click lands.
   const clickTimer = useRef<number | null>(null);
@@ -127,18 +125,7 @@ export function CourseCard({
           {t(`courseType.${course.type}`)}
         </span>
         {course.category && <span className="course-cat">{course.category}</span>}
-        {syllabus && (
-          <a
-            className="course-syllabus"
-            href={syllabus}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={t('course.syllabusHint')}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {t('course.syllabus')} ↗
-          </a>
-        )}
+        <SyllabusLink course={course} />
       </div>
       {prereqLabels.length > 0 && (
         <div className={`course-prereqs ${hasIssue ? 'issue' : ''}`}>

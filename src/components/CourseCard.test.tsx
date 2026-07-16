@@ -37,7 +37,7 @@ const render = (c: Course) =>
 describe('CourseCard syllabus link', () => {
   it('renders a syllabus link for a BGU course', () => {
     const html = render(course('232-1-1011'));
-    expect(html).toContain('class="course-syllabus"');
+    expect(html).toContain('class="syllabus-link"');
     expect(html).toContain(
       'href="https://bgu4u.bgu.ac.il/pls/scwp/!sc.AnnualSearchResults' +
         '?on_course_department=232&amp;on_course_degree_level=1&amp;on_course=1011"',
@@ -46,6 +46,6 @@ describe('CourseCard syllabus link', () => {
   });
 
   it('renders no syllabus link for a non-BGU course', () => {
-    expect(render(course('CS101'))).not.toContain('course-syllabus');
+    expect(render(course('CS101'))).not.toContain('syllabus-link');
   });
 });

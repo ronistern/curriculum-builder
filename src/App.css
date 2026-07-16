@@ -324,13 +324,13 @@ button.danger {
   color: var(--muted);
 }
 
-.course-syllabus {
+.syllabus-link {
   font-size: 0.72rem;
   color: var(--accent);
   text-decoration: none;
   white-space: nowrap;
 }
-.course-syllabus:hover {
+.syllabus-link:hover {
   text-decoration: underline;
 }
 
@@ -584,16 +584,6 @@ button.danger {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.modal-syllabus {
-  font-size: 0.8rem;
-  color: var(--accent);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.modal-syllabus:hover {
-  text-decoration: underline;
 }
 
 .modal-edit {

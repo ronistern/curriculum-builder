@@ -17,13 +17,15 @@ const BGU_SYLLABUS_BASE = 'https://bgu4u.bgu.ac.il/pls/scwp/!sc.AnnualSearchResu
  * than loading inline.
  */
 export function syllabusUrl(course: Course): string | null {
-  const m = BGU_CODE.exec(course.code.trim());
+  const m = BGU_CODE.exec(course.code?.trim() ?? '');
   if (!m) return null;
-  const [, department, degree, number] = m;
+  const [, department, degree, courseNo] = m;
+  // The code segment is passed through verbatim, leading zeros included, since
+  // that is the course's canonical catalog number.
   const params = new URLSearchParams({
     on_course_department: department,
     on_course_degree_level: degree,
-    on_course: number,
+    on_course: courseNo,
   });
   return `${BGU_SYLLABUS_BASE}?${params}`;
 }

@@ -2,9 +2,9 @@ import { useState } from 'react';
 import type { Bundle, Course, Program, Semester } from '../types';
 import { COURSE_TYPES, SEMESTERS } from '../types';
 import { activeSemesters } from '../stats';
-import { syllabusUrl } from '../syllabus';
 import { newId } from '../util';
 import { Modal } from './Modal';
+import { SyllabusLink } from './SyllabusLink';
 import { useI18n } from '../i18n/useI18n';
 
 interface Props {
@@ -82,8 +82,6 @@ export function CourseEditor({
   );
   const courseLabel = (c: Course) => `${c.code ? `${c.code} · ` : ''}${c.name}`;
   const semesters = activeSemesters(program);
-  // Deep-link to the official BGU catalog page, when the code is a BGU number.
-  const syllabus = syllabusUrl(draft);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,17 +120,7 @@ export function CourseEditor({
                 : t('editor.viewTitle')}
           </h2>
           <div className="modal-head-actions">
-            {syllabus && (
-              <a
-                className="modal-syllabus"
-                href={syllabus}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={t('course.syllabusHint')}
-              >
-                {t('course.syllabus')} ↗
-              </a>
-            )}
+            <SyllabusLink course={draft} />
             {initial.id && !editing && (
               <button
                 type="button"
