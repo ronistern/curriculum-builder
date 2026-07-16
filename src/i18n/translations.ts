@@ -50,6 +50,10 @@ const en = {
     yes: 'Yes',
     no: 'No',
   },
+  course: {
+    syllabus: 'Syllabus',
+    syllabusHint: 'Open the official BGU course page in a new tab',
+  },
   semester: {
     A: 'Semester A',
     B: 'Semester B',
@@ -238,6 +242,10 @@ const he: Dict = {
     credits: '{n} נ"ז',
     yes: 'כן',
     no: 'לא',
+  },
+  course: {
+    syllabus: 'סילבוס',
+    syllabusHint: 'פתיחת דף הקורס הרשמי באתר בן-גוריון בכרטיסייה חדשה',
   },
   semester: {
     A: "סמסטר א'",

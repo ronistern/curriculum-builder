@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Course } from '../types';
 import type { CourseStatus } from '../studentPlan';
+import { SyllabusLink } from './SyllabusLink';
 import { useI18n } from '../i18n/useI18n';
 
 /** Delay before a single click acts, so a double-click can cancel it. */
@@ -124,6 +125,7 @@ export function CourseCard({
           {t(`courseType.${course.type}`)}
         </span>
         {course.category && <span className="course-cat">{course.category}</span>}
+        <SyllabusLink course={course} />
       </div>
       {prereqLabels.length > 0 && (
         <div className={`course-prereqs ${hasIssue ? 'issue' : ''}`}>

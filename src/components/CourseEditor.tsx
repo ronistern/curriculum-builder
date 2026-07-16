@@ -4,6 +4,7 @@ import { COURSE_TYPES, SEMESTERS } from '../types';
 import { activeSemesters } from '../stats';
 import { newId } from '../util';
 import { Modal } from './Modal';
+import { SyllabusLink } from './SyllabusLink';
 import { useI18n } from '../i18n/useI18n';
 
 interface Props {
@@ -118,17 +119,20 @@ export function CourseEditor({
                 ? t('editor.editTitle')
                 : t('editor.viewTitle')}
           </h2>
-          {initial.id && !editing && (
-            <button
-              type="button"
-              className="modal-edit"
-              aria-label={t('editor.startEdit')}
-              title={t('editor.startEdit')}
-              onClick={() => setEditing(true)}
-            >
-              ✎
-            </button>
-          )}
+          <div className="modal-head-actions">
+            <SyllabusLink course={draft} />
+            {initial.id && !editing && (
+              <button
+                type="button"
+                className="modal-edit"
+                aria-label={t('editor.startEdit')}
+                title={t('editor.startEdit')}
+                onClick={() => setEditing(true)}
+              >
+                ✎
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="grid-2">
