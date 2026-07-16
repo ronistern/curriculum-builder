@@ -1,7 +1,8 @@
 import type { Program } from '../types';
-import { activeSemesters } from '../stats';
+import { COURSE_TYPES } from '../types';
+import { creditsByType, electiveProgress } from '../stats';
 import {
-  generatePlan,
+  effectiveCatalog,
   planCredits,
   type StudentPlan,
 } from '../studentPlan';
@@ -13,18 +14,16 @@ interface Props {
   /** The catalog the plan references (already resolved by the caller). */
   catalog: Program;
   onChange: (updater: (prev: StudentPlan) => StudentPlan) => void;
-  onGenerate: () => void;
 }
 
-export function AdvisePanel({ plan, catalog, onChange, onGenerate }: Props) {
+export function AdvisePanel({ plan, catalog, onChange }: Props) {
   const { t } = useI18n();
   const credits = planCredits(plan, catalog);
-  // Recomputed from the current statuses/term/cap so warnings always reflect
-  // the live inputs (the "Generate" button applies the schedule to the grid).
-  const { unschedulable } = generatePlan(plan, catalog);
-
-  const years = Array.from({ length: Math.max(catalog.years, 1) }, (_, i) => i + 1);
-  const semesters = activeSemesters(catalog);
+  // The student's effective course set (excluded dropped, extras added), viewed
+  // as a program so the same credit breakdowns as program-design mode apply.
+  const effective = effectiveCatalog(catalog, plan);
+  const byType = creditsByType(effective);
+  const electives = electiveProgress(effective);
 
   return (
     <aside className="summary">
@@ -64,88 +63,40 @@ export function AdvisePanel({ plan, catalog, onChange, onGenerate }: Props) {
       </div>
 
       <div className="summary-block">
-        <h3>{t('advise.settings')}</h3>
-        <div className="field-row">
-          <label className="field">
-            <span className="muted">{t('advise.currentYear')}</span>
-            <select
-              value={plan.current.year}
-              onChange={(e) =>
-                onChange((p) => ({
-                  ...p,
-                  current: { ...p.current, year: Number(e.target.value) },
-                }))
-              }
-            >
-              {years.map((y) => (
-                <option key={y} value={y}>
-                  {t('grid.year', { n: y })}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span className="muted">{t('advise.currentSemester')}</span>
-            <select
-              value={plan.current.semester}
-              onChange={(e) =>
-                onChange((p) => ({
-                  ...p,
-                  current: {
-                    ...p.current,
-                    semester: e.target.value as StudentPlan['current']['semester'],
-                  },
-                }))
-              }
-            >
-              {semesters.map((s) => (
-                <option key={s} value={s}>
-                  {t(`semester.${s}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <label className="field">
-          <span className="muted">{t('advise.maxCredits')}</span>
-          <input
-            type="number"
-            min={1}
-            value={plan.maxCreditsPerSemester}
-            onChange={(e) =>
-              onChange((p) => ({
-                ...p,
-                maxCreditsPerSemester: Math.max(1, Number(e.target.value) || 1),
-              }))
-            }
-          />
-        </label>
-        <button className="primary generate" onClick={onGenerate}>
-          {t('advise.generate')}
-        </button>
+        <h3>{t('summary.byType')}</h3>
+        {COURSE_TYPES.map((ct) =>
+          byType[ct.value] ? (
+            <div className="summary-row" key={ct.value}>
+              <span className={`type-badge type-${ct.value}`}>
+                {t(`courseType.${ct.value}`)}
+              </span>
+              <span>{t('common.credits', { n: byType[ct.value] })}</span>
+            </div>
+          ) : null,
+        )}
       </div>
+
+      {electives.length > 0 && (
+        <div className="summary-block">
+          <h3>{t('summary.electives')}</h3>
+          {electives.map((p) => (
+            <div className="summary-row" key={p.group.id}>
+              <span>{p.group.name || t('summary.electiveUnnamed')}</span>
+              <span className={p.met ? 'ok' : 'warn'}>
+                {t('grid.electiveProgress', {
+                  placed: p.placed,
+                  required: p.required,
+                })}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="summary-block">
         <h3>{t('advise.hintTitle')}</h3>
         <p className="muted">{t('advise.hint')}</p>
         <p className="muted">{t('advise.addHint')}</p>
-      </div>
-
-      <div className="summary-block">
-        <h3>{t('advise.unschedulableTitle')}</h3>
-        {unschedulable.length === 0 ? (
-          <p className="ok">{t('advise.allScheduled')}</p>
-        ) : (
-          <ul className="issue-list">
-            {unschedulable.map(({ course, reason }) => (
-              <li key={course.id}>
-                {t(`advise.unschedulable.${reason}`, {
-                  course: course.name,
-                })}
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
     </aside>
   );

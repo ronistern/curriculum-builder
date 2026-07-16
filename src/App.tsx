@@ -357,7 +357,6 @@ export default function App() {
               plan={plan.plan}
               catalog={catalog}
               onChange={plan.setPlan}
-              onGenerate={advisor.generate}
             />
           )
         ) : (

@@ -896,11 +896,6 @@ button.danger {
   outline: 2px solid var(--accent);
   border-color: var(--accent);
 }
-.summary button.generate {
-  width: 100%;
-  margin-top: 0.3rem;
-}
-
 /* ---------------------------------------------------------------------------
  * Open-program dialog
  * ------------------------------------------------------------------------- */

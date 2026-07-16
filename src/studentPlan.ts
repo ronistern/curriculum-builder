@@ -1,18 +1,12 @@
 import type { Course, Program, Semester } from './types';
-import {
-  activeSemesters,
-  courseWeights,
-  timeIndex,
-  weightedCreditOf,
-  weightedCredits,
-} from './stats';
+import { weightedCredits } from './stats';
 import { normalizeProgram } from './fileStore';
 import { upsertCatalog } from './catalogLibrary';
 import { serializeJson } from './util';
 
 /**
  * Per-course status in a student's plan. A course with no entry is still to be
- * planned — the auto-scheduler will place it (see {@link generatePlan}).
+ * planned.
  */
 export type CourseStatus = 'completed' | 'in-progress';
 
@@ -48,7 +42,8 @@ export interface StudentPlan {
   extraCourses: Course[];
   /**
    * Manual cell placement (year+semester) for a course the advisor dropped into
-   * a specific slot via the grid's per-cell "+". Overrides the auto-scheduler.
+   * a specific slot via the grid's per-cell "+". Overrides the course's
+   * catalog-recommended term.
    */
   placements: Record<string, TermSlot>;
   /** courseId -> status. Absent means "still to plan". */
@@ -56,7 +51,10 @@ export interface StudentPlan {
   /** The term the student is resuming from; the schedule starts here. */
   current: TermSlot;
   maxCreditsPerSemester: number;
-  /** courseId -> assigned slot, produced by {@link generatePlan}. */
+  /**
+   * courseId -> assigned slot. Retained for backward-compatibility with
+   * existing plan files; no longer populated (kept empty on new plans).
+   */
   schedule: Record<string, TermSlot>;
 }
 
@@ -114,158 +112,6 @@ export function effectiveCatalog(catalog: Program, plan: StudentPlan): Program {
       courses.some((c) => c.electiveGroupId === g.id),
     ),
   };
-}
-
-/* ----------------------------------------------------------------------------
- * Scheduler
- * ------------------------------------------------------------------------- */
-
-/** The ordered list of future terms starting at `from`, `count` terms long. */
-export function futureTerms(program: Program, from: TermSlot, count: number): TermSlot[] {
-  const sems = activeSemesters(program);
-  const startSem = Math.max(0, sems.indexOf(from.semester));
-  const slots: TermSlot[] = [];
-  let year = from.year;
-  let s = startSem;
-  for (let i = 0; i < count; i++) {
-    slots.push({ year, semester: sems[s] });
-    s += 1;
-    if (s >= sems.length) {
-      s = 0;
-      year += 1;
-    }
-  }
-  return slots;
-}
-
-export interface PlanResult {
-  schedule: Record<string, TermSlot>;
-  /** Courses that could not be placed (see {@link UnschedulableReason}). */
-  unschedulable: { course: Course; reason: UnschedulableReason }[];
-}
-
-export type UnschedulableReason =
-  | 'prereqs' // a prerequisite is never satisfied within the horizon
-  | 'capacity'; // its term is offered but always over the credit cap
-
-/** Extra terms beyond the nominal program length, so a solvable plan always fits. */
-const SCHEDULE_HORIZON_HEADROOM = 8;
-
-const termKey = (t: TermSlot) => `${t.year}-${t.semester}`;
-
-/**
- * Ids treated as already satisfying prerequisites: completed / in-progress
- * courses, plus manually-placed and extra courses (which are fixed in the plan
- * regardless of the scheduler).
- */
-function initialSatisfied(plan: StudentPlan): Set<string> {
-  const satisfied = new Set<string>();
-  for (const [id, s] of Object.entries(plan.status)) {
-    if (s === 'completed' || s === 'in-progress') satisfied.add(id);
-  }
-  for (const id of Object.keys(plan.placements ?? {})) satisfied.add(id);
-  for (const c of plan.extraCourses ?? []) satisfied.add(c.id);
-  return satisfied;
-}
-
-/**
- * Per-term credit load pre-seeded with the courses the scheduler treats as
- * already placed: in-progress (pinned at `current`), manually-placed courses (at
- * their chosen cell), and extras (at their own recommended cell).
- */
-function seedLoad(
-  program: Program,
-  plan: StudentPlan,
-  creditOf: (c: Course) => number,
-): Map<string, number> {
-  const load = new Map<string, number>();
-  const extraIds = new Set((plan.extraCourses ?? []).map((c) => c.id));
-  for (const c of program.courses) {
-    const manual = plan.placements?.[c.id];
-    const cell: TermSlot | undefined = manual
-      ? manual
-      : plan.status[c.id] === 'in-progress'
-        ? plan.current
-        : extraIds.has(c.id)
-          ? { year: c.year, semester: c.semester }
-          : undefined;
-    if (cell) {
-      const k = termKey(cell);
-      load.set(k, (load.get(k) ?? 0) + creditOf(c));
-    }
-  }
-  return load;
-}
-
-/** Classify the courses that never got placed: unmet prereqs vs. no room. */
-function classifyUnschedulable(
-  toPlan: Course[],
-  placed: Set<string>,
-  satisfied: Set<string>,
-): PlanResult['unschedulable'] {
-  return toPlan
-    .filter((c) => !placed.has(c.id))
-    .map((c) => ({
-      course: c,
-      reason: c.prerequisites.every((p) => satisfied.has(p))
-        ? ('capacity' as const)
-        : ('prereqs' as const),
-    }));
-}
-
-/**
- * Greedy term-by-term placement of the still-to-plan courses. Respects, in
- * order: prerequisites (a course may only be placed once all its prereqs are
- * satisfied by a strictly earlier term), the term the course is offered in
- * (A/B/Summer), and the per-semester weighted-credit cap. Completed and
- * in-progress courses are treated as already satisfying prerequisites;
- * in-progress ones pre-occupy the `current` term's load.
- */
-export function generatePlan(plan: StudentPlan, catalog: Program): PlanResult {
-  const program = effectiveCatalog(catalog, plan);
-  const weights = courseWeights(program);
-  const creditOf = (c: Course) => weightedCreditOf(c, weights);
-
-  const satisfied = initialSatisfied(plan);
-
-  // Courses the scheduler is free to place: base to-plan courses with no status
-  // and no manual placement (extras are always fixed).
-  const extraIds = new Set((plan.extraCourses ?? []).map((c) => c.id));
-  const toPlan = program.courses
-    .filter(
-      (c) => !plan.status[c.id] && !plan.placements?.[c.id] && !extraIds.has(c.id),
-    )
-    .sort((a, b) => timeIndex(a) - timeIndex(b) || b.credits - a.credits);
-
-  // Horizon: enough terms that a solvable plan always fits, plus headroom.
-  const termCount =
-    Math.max(program.years, 1) * activeSemesters(program).length +
-    SCHEDULE_HORIZON_HEADROOM;
-  const terms = futureTerms(program, plan.current, termCount);
-
-  const schedule: Record<string, TermSlot> = {};
-  const placed = new Set<string>();
-  const load = seedLoad(program, plan, creditOf);
-
-  for (const term of terms) {
-    const k = termKey(term);
-    const newlyPlaced: string[] = [];
-    for (const course of toPlan) {
-      if (placed.has(course.id)) continue;
-      if (course.semester !== term.semester) continue;
-      if (!course.prerequisites.every((p) => satisfied.has(p))) continue;
-      const credits = creditOf(course);
-      if ((load.get(k) ?? 0) + credits > plan.maxCreditsPerSemester) continue;
-      schedule[course.id] = { year: term.year, semester: term.semester };
-      load.set(k, (load.get(k) ?? 0) + credits);
-      placed.add(course.id);
-      newlyPlaced.push(course.id);
-    }
-    // Courses unlock their dependents only from the following term onward.
-    for (const id of newlyPlaced) satisfied.add(id);
-  }
-
-  return { schedule, unschedulable: classifyUnschedulable(toPlan, placed, satisfied) };
 }
 
 /* ----------------------------------------------------------------------------
@@ -377,15 +223,15 @@ export function parseStudentPlan(text: string): StudentPlan {
 
 /**
  * Project a plan onto its catalog (narrowed to the student's subset) for the
- * advise-mode grid: still-to-plan courses move to their scheduled slot;
- * completed / in-progress courses stay at their catalog slot. The year count
- * grows to cover the schedule's reach.
+ * advise-mode grid: a manually-placed course moves to its chosen slot;
+ * everything else stays at its catalog slot. The year count grows to cover the
+ * placements' reach.
  */
 export function advisedProgram(plan: StudentPlan, catalog: Program): Program {
   const program = effectiveCatalog(catalog, plan);
   const { placements, schedule, status } = plan;
-  // Placement priority: a manual cell override, else the scheduled slot (for
-  // to-plan courses), else the course's own recommended year/semester.
+  // Placement priority: a manual cell override, else a stored schedule slot
+  // (legacy plans only; empty now), else the course's own recommended slot.
   const courses = program.courses.map((c) => {
     const slot = placements?.[c.id] ?? (!status[c.id] ? schedule[c.id] : undefined);
     return slot ? { ...c, year: slot.year, semester: slot.semester } : c;

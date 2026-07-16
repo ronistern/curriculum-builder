@@ -3,7 +3,6 @@ import type { Course, Program } from './types';
 import type { StudentPlanStore } from './studentPlanStore';
 import {
   advisedProgram,
-  generatePlan,
   planCourses,
   type CourseStatus,
   type TermSlot,
@@ -25,8 +24,6 @@ export interface PlanAdvisor {
   removeCourse: (id: string) => void;
   /** Place a catalog course into a specific cell, pinning it over the scheduler. */
   addCourseAt: (course: Course, slot: TermSlot) => void;
-  /** Apply the auto-scheduler's result to the plan's stored schedule. */
-  generate: () => void;
   /** Adopt an opened program as the plan's referenced catalog. */
   adoptCatalog: (opened: Program) => void;
   /**
@@ -98,10 +95,6 @@ export function usePlanAdvisor(plan: StudentPlanStore): PlanAdvisor {
           };
     });
 
-  const generate = () =>
-    catalog &&
-    setPlan((p) => ({ ...p, schedule: generatePlan(p, catalog).schedule }));
-
   // Resolve the referenced catalog from an opened file when it isn't in the
   // library (e.g. a plan saved on another device), adopting its id.
   const adoptCatalog = (opened: Program) => {
@@ -146,7 +139,6 @@ export function usePlanAdvisor(plan: StudentPlanStore): PlanAdvisor {
     cycleStatus,
     removeCourse,
     addCourseAt,
-    generate,
     adoptCatalog,
     advised,
     pickerGroups,
