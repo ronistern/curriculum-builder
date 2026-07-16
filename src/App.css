@@ -324,6 +324,16 @@ button.danger {
   color: var(--muted);
 }
 
+.course-syllabus {
+  font-size: 0.72rem;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.course-syllabus:hover {
+  text-decoration: underline;
+}
+
 .course-prereqs {
   margin-top: 0.35rem;
   font-size: 0.72rem;
@@ -568,6 +578,22 @@ button.danger {
 
 .modal-head h2 {
   margin-bottom: 0;
+}
+
+.modal-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-syllabus {
+  font-size: 0.8rem;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.modal-syllabus:hover {
+  text-decoration: underline;
 }
 
 .modal-edit {
