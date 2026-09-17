@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 # Non-default program / student-tracking files
 temp/
+
+# Student transcripts / grade sheets (personal data)
+*.pdf

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Bundle, Course, Program, Semester } from './types';
+import type { GradeSheet } from './grades';
 import { useProgram } from './storage';
 import { useStudentPlan } from './studentPlanStore';
 import { planVsProgram, type TermSlot } from './studentPlan';
@@ -16,6 +17,7 @@ import { DiffView } from './components/DiffView';
 import { LanguageSwitcher } from './components/LanguageSwitcher';
 import { HiddenFileInput } from './components/HiddenFileInput';
 import { OpenProgramDialog } from './components/OpenProgramDialog';
+import { GradesView } from './components/GradesView';
 import { FileStatus, SaveButtons, UndoRedo } from './components/Toolbar';
 import { useI18n } from './i18n/useI18n';
 import type { TKey } from './i18n/useI18n';
@@ -49,6 +51,11 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showOpen, setShowOpen] = useState(false);
   const [compareWith, setCompareWith] = useState<Program | null>(null);
+  // The grades module: a parsed transcript, kept here so stepping back into the
+  // curriculum and returning doesn't mean opening the file again. Deliberately
+  // never persisted — it is a student's personal record.
+  const [showGrades, setShowGrades] = useState(false);
+  const [gradeSheet, setGradeSheet] = useState<GradeSheet | null>(null);
   // Advise mode: show the plan-vs-recommended-program changes dialog.
   const [showPlanDiff, setShowPlanDiff] = useState(false);
   // Advise mode: the cell a course is being added into (null = picker closed).
@@ -62,14 +69,16 @@ export default function App() {
   const editable = !advising;
   const catalog = plan.catalog;
 
-  // A blocking dialog owns its own draft state; a background undo/redo behind it
-  // would be invisible and surprising, so the shortcut is muted while one is open.
+  // A blocking dialog owns its own draft state, and the grades screen covers the
+  // app entirely; a background undo/redo behind either would be invisible and
+  // surprising, so the shortcut is muted while one is up.
   const modalOpen =
     editor.mode !== 'closed' ||
     showSettings ||
     showOpen ||
     compareWith !== null ||
     showPlanDiff ||
+    showGrades ||
     picker !== null;
 
   // Ctrl/Cmd+Z to undo, Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y to redo, routed to the
@@ -188,6 +197,20 @@ export default function App() {
       'advise.openError',
     );
 
+  // The grades module is a screen of its own: a dense transcript table wants the
+  // whole window, and it belongs to neither the curriculum nor a student plan.
+  // It matches against the plan's catalog while advising, else the open program.
+  if (showGrades) {
+    return (
+      <GradesView
+        program={catalog ?? program}
+        sheet={gradeSheet}
+        onSheet={setGradeSheet}
+        onClose={() => setShowGrades(false)}
+      />
+    );
+  }
+
   return (
     <div className={`app${advising ? ' advise-mode' : ''}`}>
       <header className="topbar">
@@ -245,6 +268,9 @@ export default function App() {
                   {t('planDiff.button')}
                 </button>
               )}
+              <button onClick={() => setShowGrades(true)}>
+                {t('grades.button')}
+              </button>
               <button
                 className="danger-ghost"
                 onClick={() => {
@@ -288,6 +314,9 @@ export default function App() {
                   </button>
                   <button onClick={() => plan.start(program)}>
                     {t('advise.planForStudent')}
+                  </button>
+                  <button onClick={() => setShowGrades(true)}>
+                    {t('grades.button')}
                   </button>
                   <button
                     className="danger-ghost"

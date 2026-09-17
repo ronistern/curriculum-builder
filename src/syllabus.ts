@@ -16,7 +16,7 @@ const BGU_SYLLABUS_BASE = 'https://bgu4u.bgu.ac.il/pls/scwp/!sc.AnnualSearchResu
  * blocks cross-origin fetches, so this is meant for opening in a new tab rather
  * than loading inline.
  */
-export function syllabusUrl(course: Course): string | null {
+export function syllabusUrl(course: Pick<Course, 'code'>): string | null {
   const m = BGU_CODE.exec(course.code?.trim() ?? '');
   if (!m) return null;
   const [, department, degree, courseNo] = m;

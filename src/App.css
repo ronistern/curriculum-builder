@@ -1049,3 +1049,220 @@ button.danger {
   gap: 0.9rem;
   align-items: center;
 }
+
+/* ---------- grades module ---------- */
+
+/* A screen of its own, so it repeats the base the .app wrapper would give it. */
+.grades-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.grades-view.dragging {
+  outline: 2px dashed var(--accent);
+  outline-offset: -8px;
+}
+
+.grades-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.grades-who h1 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.grades-who .subtitle {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.grades-stats {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.grades-chip {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.grades-chip.strong {
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.grades-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+}
+
+.grades-catalog {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.grades-error {
+  margin: 12px 16px 0;
+  padding: 8px 12px;
+  border: 1px solid #f3b8c8;
+  border-radius: 6px;
+  background: #fff0f4;
+  color: #a61e4d;
+  font-size: 13px;
+}
+
+.grades-empty {
+  margin: 48px auto;
+  max-width: 520px;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.grades-empty .grades-drop {
+  color: var(--ink);
+}
+
+.grades-empty .grades-privacy {
+  margin-bottom: 0;
+  font-size: 12px;
+}
+
+.grades-table-wrap {
+  flex: 1;
+  overflow: auto;
+  margin: 12px 16px 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+/* Dense on purpose: one line per course, nothing wraps, so a whole degree fits
+   on screen without scrolling. */
+.grades-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.grades-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 7px 8px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  text-align: start;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.grades-table td {
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.grades-table tbody tr:hover {
+  background: #f8f9fc;
+}
+
+.grades-table .col-code {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+.grades-table .col-code a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.grades-table .col-code a:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* The one elastic column: it takes the leftover width and clips rather than
+   wrapping, which would cost a second line on every long name. */
+.grades-table .col-name {
+  width: 100%;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.grades-table .col-num {
+  width: 1%;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.grades-table .col-kind,
+.grades-table .col-term {
+  color: var(--muted);
+}
+
+.grades-table .col-term {
+  font-variant-numeric: tabular-nums;
+}
+
+.grades-table .grade {
+  font-weight: 600;
+}
+
+.grades-table .grade.fail,
+.grades-table .attempt.fail {
+  color: var(--t-seminar);
+}
+
+.grades-table .attempt {
+  display: inline-block;
+  min-width: 22px;
+  margin-inline-end: 4px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: #eef1f7;
+  color: var(--muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.grades-table .col-program {
+  text-align: center;
+}
+
+.grades-table .in-program {
+  color: var(--t-elective);
+}
+
+.grades-table .not-in-program {
+  color: var(--line);
+}

@@ -19,6 +19,10 @@ set prerequisites, and track credit totals.
   automatically. Export to / import from a JSON file to back up or share.
 - **Sample program** — load an illustrative B.Sc. in Computer Science to see the
   layout, or start from a blank program.
+- **Grade sheet** — open a student's BGU transcript PDF (תדפיס לימודים) to get a
+  dense, one-line-per-course table: the grade that counts, the earlier attempts
+  behind it, and which courses are in the program. Read in the browser only —
+  never uploaded, never saved.
 - **Multi-lingual** — full Hebrew and English interface, switchable from the
   toolbar. Defaults to Hebrew with right-to-left layout; the choice is
   remembered in local storage.
@@ -46,6 +50,9 @@ src/
   defaultPrograms/          Built-in program JSONs (one file per program)
   storage.ts                localStorage persistence + JSON export/import
   stats.ts                  Credit totals, breakdowns, prerequisite checks
+  grades.ts                 Grade model + aggregation of repeat attempts
+  gradeSheet.ts             Transcript layout -> courses (pure, testable)
+  gradesPdf.ts              pdf.js text extraction (browser only)
   App.tsx                   Top-level layout, toolbar, editor wiring
   i18n/
     translations.ts         Hebrew + English dictionaries, language list
@@ -58,6 +65,7 @@ src/
     ProgramSettings.tsx     Program name, years, required credits, etc.
     SummaryPanel.tsx        Credit summary + prerequisite warnings
     LanguageSwitcher.tsx    Language dropdown in the toolbar
+    GradesView.tsx          Grade-sheet screen: upload + the grades table
 ```
 
 ## Adding a default program
